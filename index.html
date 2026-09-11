@@ -206,12 +206,14 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 /* ---- showcase: photo strip under the header, video rail on the right ---- */
 .strip{overflow:hidden;background:var(--surface-2);border-bottom:1px solid var(--line);
   padding:10px 0;position:relative}
-.strip .striptrack{display:flex;gap:10px;width:max-content;animation:slide 60s linear infinite}
+.strip .striptrack{display:flex;gap:10px;width:max-content;animation:slide 60s linear infinite;
+  will-change:transform;transform:translateZ(0);backface-visibility:hidden}
 .strip:hover .striptrack,.strip:focus-within .striptrack{animation-play-state:paused}
 @keyframes slide{ from{transform:translateX(-50%)} to{transform:translateX(0)} }
 .strip figure{margin:0;flex:0 0 auto;width:210px;height:140px;border-radius:8px;overflow:hidden;
   border:1px solid var(--line);background:var(--surface);cursor:pointer;position:relative}
-.strip img{width:100%;height:100%;object-fit:cover;display:block}
+.strip img{width:100%;height:100%;object-fit:cover;display:block;
+  content-visibility:auto;contain-intrinsic-size:210px 140px}
 .strip figcaption{position:absolute;left:0;right:0;bottom:0;padding:14px 8px 6px;font-size:11px;color:#fff;
   background:linear-gradient(transparent,rgba(0,0,0,.7));line-height:1.3}
 @media (prefers-reduced-motion:reduce), (hover:none){
@@ -222,6 +224,7 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .showwrap{display:block}
 @media (min-width:980px){
   .showwrap{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:18px;align-items:start}
+  .showwrap.norail{grid-template-columns:minmax(0,1fr)}
   .reelrail{position:sticky;top:16px;display:flex;flex-direction:column;gap:12px}
 }
 .reelrail{margin-top:20px}
@@ -232,7 +235,16 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .reel iframe,.reel video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;display:block}
 .reel .rlabel{position:absolute;left:0;right:0;bottom:0;padding:16px 9px 7px;font-size:11.5px;color:#f0e6d2;
   background:linear-gradient(transparent,rgba(0,0,0,.78));line-height:1.35;pointer-events:none;z-index:2}
-.reel .rlink{position:absolute;inset:0;z-index:3}
+.reelbtns{position:absolute;left:8px;bottom:8px;display:flex;gap:6px;z-index:4}
+.reelbtn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(240,205,122,.35);
+  background:rgba(8,10,14,.72);color:#eac673;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;padding:0;font-size:13px;line-height:1}
+.reelbtn:hover{background:rgba(8,10,14,.92)}
+.reelopen{position:absolute;right:8px;bottom:8px;z-index:4;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:#cbbb95;text-decoration:none;background:rgba(8,10,14,.72);
+  padding:5px 9px;border-radius:999px;border:1px solid rgba(240,205,122,.25)}
+.reelopen:hover{color:#eac673}
+.reel .rlabel{padding-bottom:46px}
 .reel.card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
   background:linear-gradient(150deg,#1d2430,#12151c);text-decoration:none;padding:12px;text-align:center}
 .reel .host{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8e98a9}
@@ -243,6 +255,7 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
   border:1px solid var(--line);aspect-ratio:4/3;cursor:pointer}
 .gal img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
 .gal figure:hover img{transform:scale(1.04)}
+.strip figure:hover img{transform:none}
 .gal figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 9px 7px;font-size:11.5px;color:#fff;
   background:linear-gradient(transparent,rgba(0,0,0,.72));line-height:1.35}
 .gal .vid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;height:100%;
@@ -252,6 +265,7 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .gal .del{position:absolute;top:6px;right:6px;z-index:2;background:rgba(0,0,0,.62);color:#fff;border:0;
   border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;display:none}
 .gal figure:hover .del{display:block}
+@media (hover:none){ .gal .del{display:block} }
 .lightbox{position:fixed;inset:0;z-index:120;background:rgba(10,9,8,.94);display:flex;align-items:center;
   justify-content:center;flex-direction:column;gap:12px;padding:20px}
 .lightbox img{max-width:100%;max-height:78vh;border-radius:8px;object-fit:contain}
@@ -847,7 +861,9 @@ function renderPublicYear(y){
         '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
     }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
 
-  renderStrip(y); renderReels(y);
+  renderStrip(y);
+  var nVids=renderReels(y);
+  document.querySelector(".showwrap").classList.toggle("norail", !nVids);
   var shown=renderGallery("pub-gal", y, false);
   $("pub-gal-card").hidden = !shown;
   if(shown) $("pub-gal-cap").textContent = shown+" photo"+(shown===1?"":"s")+" and video"+
@@ -1131,7 +1147,9 @@ $("sheet-save").addEventListener("click",function(){
     var el=$("f_"+f.k);
     out[f.k] = f.type==="number" ? num(el.value) : el.value.trim();
   });
-  var fn=sheetCtx.onSave; closeSheet(); fn(out);
+  var fn=sheetCtx.onSave;
+  if(fn(out)===false) return;      // validation failed — keep what they typed
+  closeSheet();
 });
 function nextSno(arr){ var m=0; arr.forEach(function(r){ var n=num(r.sno); if(n>m) m=n; }); return m+1; }
 
@@ -1150,7 +1168,7 @@ function editContributor(c){
     {k:"tag",label:"Reconciliation",type:"select",allowBlank:true,options:TAGS,value:c.tag||""},
     {k:"notes",label:"Notes",type:"textarea",value:c.notes||""}
   ],function(v){
-    if(!v.name){ toast("A name is required."); return; }
+    if(!v.name){ toast("A name is required."); return false; }
     if(isNew){
       contributors().push({id:uid(),sno:nextSno(contributors()),name:v.name,amount:v.amount,
         promised:v.promised,collectedBy:v.collectedBy,date:v.date,
@@ -1346,7 +1364,7 @@ function renderGallery(hostId, y, editable){
         '<span class="host">'+esc(videoHost(m.url))+'</span>'+
         (m.caption?'<span class="cap">'+esc(m.caption)+'</span>':'')+'</a></figure>';
     }
-    return '<figure data-i="'+i+'">'+del+'<img src="'+esc(m.file)+'" alt="'+esc(m.caption||("Photo from "+y))+'" loading="lazy">'+
+    return '<figure data-i="'+i+'">'+del+'<img src="'+esc(m.thumb||m.file)+'" decoding="async" loading="lazy" alt="'+esc(m.caption||("Photo from "+y))+'">'+
       (m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>';
   }).join("")+'</div>';
 
@@ -1368,6 +1386,58 @@ function renderGallery(hostId, y, editable){
   return items.length;
 }
 var REEL_TIMERS=[];
+var ICON={
+  mute:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8l4 4m0-4l-4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+  sound:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8 8 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+  play:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>',
+  pause:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
+};
+function controlsHtml(){
+  return '<div class="reelbtns">'+
+    '<button class="reelbtn" data-c="sound" type="button" aria-label="Turn the sound on">'+ICON.mute+'</button>'+
+    '<button class="reelbtn" data-c="play" type="button" aria-label="Pause">'+ICON.pause+'</button></div>';
+}
+function openHtml(url){
+  return '<a class="reelopen" href="'+esc(url)+'" target="_blank" rel="noopener">Open</a>';
+}
+/* YouTube accepts commands over postMessage when enablejsapi=1, so the buttons
+   work without pulling in Google's player library. */
+function ytCmd(frame, func){
+  try{ frame.contentWindow.postMessage(JSON.stringify({event:"command",func:func,args:[]}),"*"); }catch(e){}
+}
+function wireControls(el, st){
+  var snd=el.querySelector('[data-c="sound"]'), pp=el.querySelector('[data-c="play"]');
+  if(!snd||!pp) return;
+  snd.addEventListener("click",function(e){
+    e.preventDefault(); e.stopPropagation();
+    st.muted=!st.muted;
+    if(st.kind==="clip"){ st.video.muted=st.muted; }
+    else { ytCmd(st.frame, st.muted?"mute":"unMute"); }
+    snd.innerHTML = st.muted ? ICON.mute : ICON.sound;
+    snd.setAttribute("aria-label", st.muted?"Turn the sound on":"Mute");
+  });
+  function paint(playing){
+    pp.innerHTML = playing ? ICON.pause : ICON.play;
+    pp.setAttribute("aria-label", playing?"Pause":"Play");
+  }
+  if(st.kind==="clip"){
+    // read the real state of the element rather than trusting a flag
+    st.video.addEventListener("play",  function(){ paint(true); });
+    st.video.addEventListener("pause", function(){ paint(false); });
+    paint(!st.video.paused);
+    pp.addEventListener("click",function(e){
+      e.preventDefault(); e.stopPropagation();
+      if(st.video.paused) st.video.play().catch(function(){}); else st.video.pause();
+    });
+  } else {
+    pp.addEventListener("click",function(e){
+      e.preventDefault(); e.stopPropagation();
+      st.playing=!st.playing;
+      ytCmd(st.frame, st.playing?"playVideo":"pauseVideo");
+      paint(st.playing);
+    });
+  }
+}
 function stopReels(){ REEL_TIMERS.forEach(clearTimeout); REEL_TIMERS=[]; }
 
 /* Photos scroll under the header; the track is duplicated so the loop is seamless. */
@@ -1376,12 +1446,20 @@ function renderStrip(y){
   var strip=$("pub-strip"), track=$("pub-track");
   if(!photos.length){ strip.hidden=true; track.innerHTML=""; return 0; }
   strip.hidden=false;
+  var TILE=220;                       // 210px tile + 10px gap
+  var need=Math.max(1, Math.ceil(strip.clientWidth / (photos.length*TILE)));
   var one=photos.map(function(m,i){
-    return '<figure data-si="'+i+'"><img src="'+esc(m.file)+'" alt="'+esc(m.caption||("Photo from "+y))+'" loading="lazy">'+
+    // the duplicated half sits outside the viewport inside a transformed box,
+    // where lazy loading never fires — so these load eagerly
+    return '<figure data-si="'+i+'"><img src="'+esc(m.thumb||m.file)+'" width="210" height="140" '+
+      'decoding="async" fetchpriority="low" alt="'+esc(m.caption||("Photo from "+y))+'">'+
       (m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>';
   }).join("");
-  track.innerHTML=one+one;                       // two copies = continuous loop
-  track.style.animationDuration=Math.max(24, photos.length*9)+"s";
+  var half=""; for(var k=0;k<need;k++) half+=one;
+  track.innerHTML=half+half;                     // two identical halves = seamless loop
+  // hold the speed steady whatever the count: about 45 pixels a second
+  var halfPx=photos.length*need*TILE;
+  track.style.animationDuration=Math.max(18, Math.round(halfPx/45))+"s";
   track.querySelectorAll("figure").forEach(function(f){
     f.addEventListener("click",function(){ openLightbox(photos, Number(f.dataset.si)); });
   });
@@ -1405,10 +1483,14 @@ function renderReels(y){
     var el=$("reel-"+slot); if(!el) return;
     el.className="reel";
     if(item.type==="clip" && item.file){
-      el.innerHTML='<video src="'+esc(item.file)+'" muted playsinline autoplay preload="metadata"></video>'+
-        (item.caption?'<div class="rlabel">'+esc(item.caption)+'</div>':'');
+      var solo = vids.length<=slots;   // nothing to rotate to, so just loop in place
+      el.innerHTML='<video src="'+esc(item.file)+'" muted playsinline autoplay preload="metadata"'+
+        (solo?' loop':'')+'></video>'+
+        (item.caption?'<div class="rlabel">'+esc(item.caption)+'</div>':'')+
+        controlsHtml();
       var v=el.querySelector("video");
-      v.addEventListener("ended",function(){ advance(slot); });
+      if(!solo) v.addEventListener("ended",function(){ advance(slot); });
+      wireControls(el, {kind:"clip", video:v, muted:true, playing:true});
       v.play().catch(function(){});
       return;
     }
@@ -1416,10 +1498,13 @@ function renderReels(y){
     if(id){
       el.innerHTML='<iframe src="https://www.youtube.com/embed/'+encodeURIComponent(id)+
         '?autoplay=1&mute=1&controls=0&loop=1&playlist='+encodeURIComponent(id)+
-        '&modestbranding=1&rel=0&playsinline=1" allow="autoplay; encrypted-media" '+
+        '&modestbranding=1&rel=0&playsinline=1&enablejsapi=1" allow="autoplay; encrypted-media" '+
         'referrerpolicy="strict-origin-when-cross-origin" title="'+esc(item.caption||"Festival video")+'"></iframe>'+
         (item.caption?'<div class="rlabel">'+esc(item.caption)+'</div>':'')+
-        '<a class="rlink" href="'+esc(item.url)+'" target="_blank" rel="noopener" aria-label="Open this video"></a>';
+        controlsHtml()+openHtml(item.url);
+      wireControls(el, {
+        kind:"yt", frame:el.querySelector("iframe"), muted:true, playing:true
+      });
       if(vids.length>slots) REEL_TIMERS.push(setTimeout(function(){ advance(slot); }, 45000));
       return;
     }
@@ -1504,18 +1589,28 @@ function addPhotos(files){
   list.forEach(function(f){
     chain=chain.then(function(){
       note.textContent="Uploading "+(done+failed+1)+" of "+list.length+"…";
+      var id=uid("m"), full="media/"+ui.year+"/"+id+".jpg", thumb="media/"+ui.year+"/"+id+"-t.jpg";
       return compressImage(f, 1600, 0.82).then(function(bl){
         return blobToB64(bl).then(function(b64){
-          var id=uid("m");
-          var path="media/"+ui.year+"/"+id+".jpg";
-          return fetch(ghUrl(path),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
+          return fetch(ghUrl(full),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
             message:"Add photo to "+ui.year+" gallery", content:b64, branch:cfg.branch||"main"
           })}).then(function(r){
             if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||("HTTP "+r.status)); });
-            MEDIA.items.push({id:id, year:ui.year, type:"photo", file:path,
-                              caption:"", addedAt:nowISO(), size:bl.size});
-            done++;
+            return bl.size;
           });
+        });
+      }).then(function(size){
+        // a small thumbnail keeps the scrolling strip light on a village phone
+        return compressImage(f, 480, 0.72).then(function(tb){
+          return blobToB64(tb).then(function(t64){
+            return fetch(ghUrl(thumb),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
+              message:"Add thumbnail", content:t64, branch:cfg.branch||"main"
+            })}).then(function(r){ return r.ok ? thumb : ""; });
+          });
+        }).catch(function(){ return ""; }).then(function(tpath){
+          MEDIA.items.push({id:id, year:ui.year, type:"photo", file:full,
+                            thumb:tpath||"", caption:"", addedAt:nowISO(), size:size});
+          done++;
         });
       }).catch(function(){ failed++; });
     });
@@ -1566,13 +1661,21 @@ function addVideoLink(){
     {k:"url",label:"Link",value:"",hint:"A YouTube, Instagram, Facebook or Google Drive link. The video stays where it is — only the link is stored."},
     {k:"caption",label:"Caption",value:""}
   ],function(v){
-    if(!/^https?:\/\//i.test(v.url||"")){ toast("That does not look like a link."); return; }
+    if(!/^https?:\/\//i.test(v.url||"")){ toast("That does not look like a link."); return false; }
     MEDIA.items.push({id:uid("m"), year:ui.year, type:"video", url:v.url, caption:v.caption, addedAt:nowISO()});
     MEDIA.updatedAt=nowISO();
     saveManifest("Add a video link to "+ui.year).then(function(){
       renderMedia(); toast("Video link added.");
     }).catch(function(e){ toast("Could not save: "+e.message); });
   },null,{saveLabel:"Add link"});
+}
+function delBlob(path){
+  return fetch(ghUrl(path)+"?ref="+encodeURIComponent(cfg.branch||"main"),{headers:ghHeaders()})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){ if(!j) return;
+      return fetch(ghUrl(path),{method:"DELETE",headers:ghHeaders(),body:JSON.stringify({
+        message:"Delete gallery file", sha:j.sha, branch:cfg.branch||"main"})});
+    }).catch(function(){});
 }
 function removeMedia(id){
   var i=-1;
@@ -1582,15 +1685,8 @@ function removeMedia(id){
   MEDIA.items.splice(i,1); MEDIA.updatedAt=nowISO();
   saveManifest("Remove an item from the "+item.year+" gallery").then(function(){
     renderMedia(); toast("Removed.");
-    if(item.type==="photo" && item.file){
-      // tidy the file away too; harmless if it fails
-      fetch(ghUrl(item.file)+"?ref="+encodeURIComponent(cfg.branch||"main"),{headers:ghHeaders()})
-        .then(function(r){ return r.ok?r.json():null; })
-        .then(function(j){ if(!j) return;
-          return fetch(ghUrl(item.file),{method:"DELETE",headers:ghHeaders(),body:JSON.stringify({
-            message:"Delete gallery photo", sha:j.sha, branch:cfg.branch||"main"})});
-        }).catch(function(){});
-    }
+    if(item.thumb) delBlob(item.thumb);
+    if(item.file) delBlob(item.file);
   }).catch(function(e){ toast("Could not save: "+e.message); });
 }
 function renderMedia(){
@@ -1837,9 +1933,53 @@ function openSettings(){
     toast(cfg.token?"Settings saved. Publishing is enabled on this device.":"Settings saved.");
   }, yrs.length>1?function(){ removeYear(ui.year); }:null,
      {deleteLabel:"Remove "+ui.year+" from this register", deleteArmedLabel:armed,
-      extras: dirty?[{label:"Discard unpublished changes on this device",
+      extras: (dirty?[{label:"Discard unpublished changes on this device",
         armedLabel:"Tap again — this device reloads the published register",
-        className:"sec", fn:discardLocal}]:[]});
+        className:"sec", fn:discardLocal}]:[]).concat(
+        cfg.token?[{label:"Change the team access code",
+          armedLabel:"Tap again to open the code change",
+          className:"sec", fn:changeTeamCode}]:[])});
+}
+/* Rotating the team code re-encrypts the register under a new passphrase.
+   It only makes sense on the phone that publishes — everyone else would end up
+   holding a code that no longer opens the published file. */
+function changeTeamCode(){
+  if(!cfg.token){ toast("Only the phone that publishes can change the team code."); return; }
+  if(dirty){ toast("Publish your pending changes first, then change the code."); return; }
+  openSheet("Change the team access code",[
+    {k:"now",  label:"Current code", type:"password", value:""},
+    {k:"next", label:"New code",     type:"password", value:""},
+    {k:"again",label:"New code again",type:"password", value:""}
+  ],function(v){
+    if(v.now!==CODE){ toast("The current code is wrong."); return false; }
+    if(!v.next || v.next.length<4){ toast("Use at least four characters."); return false; }
+    if(v.next!==v.again){ toast("The two new codes do not match."); return false; }
+    if(v.next===String(doc.publicCode||"")){ toast("The team code must differ from the public code."); return false; }
+    applyNewCode(v.next);
+  },null,{
+    saveLabel:"Change and publish",
+    intro:"Everyone on the team will need the new code — the old one stops working the moment this is published. "+
+          "Import any entries collectors have already sent you BEFORE changing it: patches are encrypted with the "+
+          "old code and cannot be opened afterwards. Excel exports are unaffected; downloaded backups stay on the old code."
+  });
+}
+function applyNewCode(next){
+  toast("Re-encrypting the register…");
+  encryptPayload(doc, next).then(function(bundle){
+    return putFile(cfg.path||DATA_FILE, JSON.stringify(bundle,null,1),
+      "Change the team access code — "+new Date().toLocaleString("en-IN"));
+  }).then(function(){
+    CODE=next;                      // only after the publish actually succeeded
+    dirty=false; try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    renderDirty();
+    openSheet("The code has been changed",[],function(){},null,{
+      saveLabel:"Done",
+      intro:"The register is now encrypted with the new code. Send it to your collectors — their phones "+
+            "will ask for it next time they open the register. Anyone still holding the old code cannot get in."
+    });
+  }).catch(function(err){
+    toast("Could not change the code: "+err.message+". Nothing was changed.");
+  });
 }
 function discardLocal(){
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
@@ -1917,6 +2057,15 @@ document.querySelector("#e-table thead").addEventListener("click",function(e){
   var k=th.dataset.sort;
   ui.eSort={k:k,dir: ui.eSort.k===k ? -ui.eSort.dir : (k==="amount"?-1:1)};
   renderExpenses();
+});
+var STRIP_RS=null;
+window.addEventListener("resize",function(){
+  if($("pub").hidden) return;
+  clearTimeout(STRIP_RS);
+  STRIP_RS=setTimeout(function(){
+    var sel=$("pub-year-select");
+    if(sel && sel.value) renderStrip(Number(sel.value));
+  },220);
 });
 window.addEventListener("beforeunload",function(e){
   if(dirty && !cfg.token){ e.preventDefault(); e.returnValue=""; }
