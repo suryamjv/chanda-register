@@ -17,6 +17,7 @@
   --good:#1f6b45; --good-soft:#e3f0e8;
   --wait:#8a5a06; --wait-soft:#f8eddb;
   --new:#4a3aa7;  --new-soft:#e9e6f7;
+  --part:#1f5fa8; --part-soft:#e4eefb;
   --danger:#b3271e;
   --shadow:0 1px 2px rgba(60,30,25,.06), 0 8px 24px -12px rgba(60,30,25,.18);
   --ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Telugu", "Nirmala UI", sans-serif;
@@ -35,6 +36,8 @@
     --good:#63b98a; --good-soft:#1b2f23;
     --wait:#d6a23c; --wait-soft:#312516;
     --new:#9085e9;  --new-soft:#242044;
+  --part:#7fb2ee; --part-soft:#16233a;
+    --part:#7fb2ee; --part-soft:#16233a;
     --danger:#e66767;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
   }
@@ -187,6 +190,13 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .p-paid{background:var(--good-soft);color:var(--good)}
 .p-pend{background:var(--wait-soft);color:var(--wait)}
 .p-new{background:var(--new-soft);color:var(--new)}
+.p-part{background:var(--part-soft);color:var(--part)}
+.ph{display:inline-block;margin:5px 6px 0 0;font-size:11.5px;padding:2px 9px;border-radius:999px;
+  border:1px solid var(--line-strong);color:var(--ink-2);text-decoration:none;white-space:nowrap}
+.ph:hover{background:var(--surface-2);color:var(--ink)}
+.ph.wa{color:var(--good)}
+.meta{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;font-family:var(--ui);font-weight:400}
+.pub-note{border-left:3px solid var(--accent-ink)}
 .stripe{width:3px;padding:0!important;border-bottom:0!important}
 .delta{font-size:11.5px;color:var(--muted);display:block;margin-top:2px}
 .delta.up{color:var(--good)} .delta.down{color:var(--danger)}
@@ -282,6 +292,7 @@ footer p{margin:0}
           <button class="rowbtn" id="target-save" type="button">Set target</button>
           <span id="target-hint"></span>
         </div>
+        <p id="pledge-note" class="d" style="margin:0;color:var(--part);font-size:13px" hidden></p>
       </div>
       <div class="charts">
         <div class="card chart">
@@ -303,7 +314,8 @@ footer p{margin:0}
         <div class="chips" id="c-filters">
           <button class="chip" data-f="all" aria-pressed="true" type="button">All</button>
           <button class="chip" data-f="paid" aria-pressed="false" type="button">Received</button>
-          <button class="chip" data-f="pending" aria-pressed="false" type="button">Pending</button>
+          <button class="chip" data-f="partial" aria-pressed="false" type="button">Part paid</button>
+        <button class="chip" data-f="pending" aria-pressed="false" type="button">Pending</button>
           <button class="chip" data-f="new" aria-pressed="false" type="button">New this year</button>
         </div>
         <button class="btn" id="c-add" type="button">Add contributor</button>
@@ -342,6 +354,51 @@ footer p{margin:0}
   </footer>
 </div>
 
+<div id="pub" hidden>
+  <div class="rail"><div class="rail-in">
+    <div class="brand">
+      <h1 id="pub-name">Vinayaka Chavithi Chanda</h1>
+      <span class="sub">Team Telugu Yuvatha Murikipudi &middot; 5th year</span>
+    </div>
+    <div class="rail-figs">
+      <div class="rfig"><span class="k">Public view</span><span class="v" id="pub-year"></span></div>
+    </div>
+  </div></div>
+  <main>
+    <div class="banner pub-note" id="pub-note"></div>
+    <div class="grid3">
+      <div class="card tile lead"><span class="k">Collected</span><span class="v" id="pub-coll">₹0</span><span class="d" id="pub-coll-sub"></span></div>
+      <div class="card tile spend"><span class="k">Spent</span><span class="v" id="pub-exp">₹0</span><span class="d" id="pub-exp-sub"></span></div>
+      <div class="card tile hand"><span class="k">Balance in hand</span><span class="v" id="pub-bal">₹0</span><span class="d">Collections minus expenses</span></div>
+    </div>
+    <div class="card progwrap">
+      <div class="progtop"><strong id="pub-prog-label"></strong><span class="num" id="pub-prog-pct" style="color:var(--muted)"></span></div>
+      <div class="track"><div class="fill" id="pub-prog-fill" style="width:0%"></div></div>
+    </div>
+    <div class="card chart" style="margin-top:20px">
+      <h3>Where the money went</h3>
+      <p class="cap">Every rupee spent, by head</p>
+      <div id="pub-chart"></div>
+    </div>
+    <div class="card chart" style="margin-top:14px">
+      <h3>Expense detail</h3>
+      <p class="cap">The same figures, item by item</p>
+      <div class="tablewrap" style="box-shadow:none;border:0;max-height:none">
+        <table style="min-width:420px">
+          <thead><tr><th class="plain">Head</th><th class="plain">Item</th><th class="plain" style="text-align:right">Amount</th></tr></thead>
+          <tbody id="pub-exp-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <div class="foot-rule"></div>
+    <p class="foot-values te">ఐక్యత <b>Unity</b> &middot; సేవ <b>Service</b> &middot; సంస్కృతి <b>Culture</b> &middot; నిబద్ధత <b>Commitment</b> &middot; విజయం <b>Success</b></p>
+    <p id="pub-foot"></p>
+    <p class="foot-morya te">గణపతి బప్పా మోరియా ! మంగళమూర్తి మోరియా !!</p>
+  </footer>
+</div>
+
 <div class="scrim" id="scrim" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
     <div class="sheet-h"><h2 id="sheet-title">Edit</h2><button class="x" id="sheet-x" type="button" aria-label="Close">&times;</button></div>
@@ -363,6 +420,7 @@ footer p{margin:0}
    ========================================================= */
 
 var DATA_FILE = "data.json";
+var PUBLIC_FILE = "public.json";
 var PBKDF2_ITERS = 210000;
 var LS_KEY = "chanda.local.v1";
 var LS_CFG = "chanda.cfg.v1";
@@ -524,10 +582,33 @@ function contributors(){ return year().contributors; }
 function expenses(){ return year().expenses; }
 function sumOf(arr,key){ var t=0; for(var i=0;i<arr.length;i++){ var v=num(arr[i][key]); if(v) t+=v; } return t; }
 function paidState(c){
-  var a=num(c.amount);
-  if(a!==null && a>0) return "paid";
+  var got=num(c.amount)||0, due=num(c.promised);
+  if(got>0 && due!==null && due>got) return "partial";
+  if(got>0) return "paid";
   if((c.tag||"")==="New Contributor") return "new";
   return "pending";
+}
+function outstanding(c){
+  var got=num(c.amount)||0, due=num(c.promised);
+  return (due!==null && due>got) ? due-got : 0;
+}
+function phoneDigits(v){
+  var d=String(v||"").replace(/\D/g,"");
+  if(d.length===10) d="91"+d;
+  return d.length>=11 ? d : "";
+}
+function phoneLinks(v){
+  var d=phoneDigits(v);
+  if(!d) return v ? '<span class="meta">'+esc(v)+'</span>' : "";
+  return '<a class="ph" href="tel:+'+d+'">Call '+esc(v)+'</a>'+
+         '<a class="ph wa" href="https://wa.me/'+d+'" target="_blank" rel="noopener">WhatsApp</a>';
+}
+var MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(d){
+  if(!d) return "";
+  var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if(!m) return d;
+  return Number(m[3])+" "+MONTHS[Number(m[2])-1];
 }
 function markDirty(){
   dirty=true;
@@ -547,8 +628,8 @@ function renderDirty(){
 /* =========================================================
    Boot / gate
    ========================================================= */
-function fetchBundle(){
-  return fetch(DATA_FILE+"?t="+Date.now(), {cache:"no-store"}).then(function(r){
+function fetchBundle(file){
+  return fetch(file+"?t="+Date.now(), {cache:"no-store"}).then(function(r){
     if(!r.ok) throw new Error("http "+r.status);
     return r.json();
   });
@@ -558,7 +639,9 @@ $("gate-form").addEventListener("submit", function(ev){
   var code = $("gate-code").value.trim();
   if(!code){ $("gate-err").textContent="Enter the access code."; return; }
   var btn=$("gate-go"); btn.disabled=true; btn.textContent="Opening…"; $("gate-err").textContent="";
-  fetchBundle().then(function(bundle){
+  var reached=false;
+  fetchBundle(DATA_FILE).then(function(bundle){
+    reached=true;
     return decryptBundle(bundle, code).then(function(data){
       CODE = code;
       // prefer newer unpublished local edits over the published file
@@ -569,16 +652,56 @@ $("gate-form").addEventListener("submit", function(ev){
       } else { doc = data; dirty = false; try{ localStorage.removeItem(LS_KEY); }catch(e){} }
       startApp();
     });
-  }).catch(function(err){
-    btn.disabled=false; btn.textContent="Open register";
-    if(err && /http \d/.test(String(err.message))){
-      $("gate-err").textContent = "Could not load the register file (data.json).";
-    } else {
-      $("gate-err").textContent = "That code does not match this register.";
-    }
-    $("gate-code").select();
+  }).catch(function(){
+    // not the team code — try the public summary, which holds no personal data
+    return fetchBundle(PUBLIC_FILE).then(function(pb){
+      return decryptBundle(pb, code).then(function(summary){ startPublic(summary); });
+    }).catch(function(){
+      btn.disabled=false; btn.textContent="Open register";
+      $("gate-err").textContent = reached
+        ? "That code does not match this register."
+        : "Could not load the register file (data.json).";
+      $("gate-code").select();
+    });
   });
 });
+
+function startPublic(sum){
+  $("gate").hidden=true; $("pub").hidden=false;
+  var name=sum.festivalName||"Chanda Register";
+  document.title=name; $("pub-name").textContent=name;
+  $("pub-year").textContent=sum.year||"";
+  var coll=num(sum.collected)||0, exp=num(sum.spent)||0;
+  var bal=(sum.balance==null? coll-exp : num(sum.balance))||0;
+  $("pub-coll").textContent=money(coll);
+  $("pub-exp").textContent=money(exp);
+  $("pub-bal").textContent=money(bal);
+  $("pub-coll-sub").textContent = sum.contributorCount
+    ? "from "+(sum.paidCount||0)+" of "+sum.contributorCount+" names on the register" : "";
+  var list=(sum.expenses||[]);
+  $("pub-exp-sub").textContent="across "+list.length+(list.length===1?" head":" heads");
+
+  var target=num(sum.target)||0;
+  var pct = target>0 ? Math.min(100, Math.round(coll/target*100)) : 0;
+  $("pub-prog-fill").style.width=pct+"%";
+  $("pub-prog-pct").textContent = target>0 ? pct+"% of "+money(target) : "";
+  $("pub-prog-label").textContent = target>0
+    ? (coll>=target ? "Target reached" : money(Math.max(0,target-coll))+" still to collect")
+    : "Collected so far";
+
+  drawExpenseBars("pub-chart", list.map(function(e){ return {name:e.category||"—", v:num(e.amount)||0}; }));
+  $("pub-exp-body").innerHTML = list.slice().sort(function(a,b){ return (num(b.amount)||0)-(num(a.amount)||0); })
+    .map(function(e){
+      return '<tr><td><span class="nm">'+esc(e.category||"—")+'</span></td>'+
+        '<td style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
+        '<td class="amt num"><strong>'+money(e.amount)+'</strong></td></tr>';
+    }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
+
+  var when = sum.updatedAt ? new Date(sum.updatedAt).toLocaleString("en-IN") : "";
+  $("pub-note").textContent = "Public summary — totals and expenses only. Contributor names and individual "+
+    "amounts are not part of this view." + (when? " Last updated "+when+"." : "");
+  $("pub-foot").textContent = (sum.contributorCount||0)+" contributors · "+list.length+" expense heads · "+(sum.year||"")+" register";
+}
 
 function startApp(){
   $("gate").hidden = true;
@@ -596,8 +719,15 @@ function renderHeadline(){
   var coll=sumOf(contributors(),"amount"), exp=sumOf(expenses(),"amount"), bal=coll-exp;
   $("rf-coll").textContent=money(coll); $("rf-exp").textContent=money(exp); $("rf-bal").textContent=money(bal);
   $("d-coll").textContent=money(coll);  $("d-exp").textContent=money(exp);  $("d-bal").textContent=money(bal);
-  var paid=contributors().filter(function(c){return paidState(c)==="paid";}).length;
-  $("d-coll-sub").textContent="from "+paid+" of "+contributors().length+" names on the register";
+  var cs=contributors();
+  var paid=cs.filter(function(c){var st=paidState(c);return st==="paid"||st==="partial";}).length;
+  $("d-coll-sub").textContent="from "+paid+" of "+cs.length+" names on the register";
+  var owedList=cs.filter(function(c){ return outstanding(c)>0; });
+  var owed=owedList.reduce(function(t,c){ return t+outstanding(c); },0);
+  var oe=$("pledge-note");
+  if(owed>0){ oe.hidden=false; oe.textContent=money(owed)+" promised but not yet received, across "+
+    owedList.length+(owedList.length===1?" person":" people"); }
+  else { oe.hidden=true; }
   var heads=expenses().filter(function(e){return num(e.amount);}).length;
   $("d-exp-sub").textContent="across "+heads+" of "+expenses().length+" heads";
 
@@ -642,9 +772,11 @@ function chartTop(){
   host.innerHTML=s.join("")+'</svg>';
 }
 function chartExpenses(){
-  var host=$("chart2");
-  var rows=expenses().map(function(e){ return {name:e.category||"—",v:num(e.amount)||0}; })
-    .filter(function(r){return r.v>0;}).sort(function(a,b){return b.v-a.v;});
+  drawExpenseBars("chart2", expenses().map(function(e){ return {name:e.category||"—",v:num(e.amount)||0}; }));
+}
+function drawExpenseBars(hostId, all){
+  var host=$(hostId);
+  var rows=all.filter(function(r){return r.v>0;}).sort(function(a,b){return b.v-a.v;});
   if(!rows.length){ host.innerHTML='<p class="empty">No expenses recorded yet.</p>'; return; }
   var max=niceMax(rows[0].v), LBL=146,RGT=76,W=540,rowH=28,barH=12,H=rows.length*rowH+30,plotW=W-LBL-RGT;
   var s=['<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="Expenses by head">'];
@@ -704,28 +836,34 @@ function renderContributors(){
   var rows=contributors().filter(function(c){
     if(ui.cFilter!=="all" && paidState(c)!==ui.cFilter) return false;
     if(!q) return true;
-    return [c.name,c.prevName,c.notes,c.tag,c.phone].join(" ").toLowerCase().indexOf(q)>=0;
+    return [c.name,c.prevName,c.notes,c.tag,c.phone,c.collectedBy].join(" ").toLowerCase().indexOf(q)>=0;
   });
   rows=sortRows(rows,ui.cSort);
   $("c-empty").hidden = rows.length>0;
   $("c-body").innerHTML = rows.map(function(c){
     var st=paidState(c);
-    var stripe = st==="paid"?"var(--good)":st==="new"?"var(--new)":"var(--wait)";
+    var stripe = st==="paid"?"var(--good)":st==="new"?"var(--new)":st==="partial"?"var(--part)":"var(--wait)";
     var pill = st==="paid"?'<span class="pill p-paid">Received</span>'
+             : st==="partial"?'<span class="pill p-part">Part paid</span>'
              : st==="new"?'<span class="pill p-new">New</span>'
              : '<span class="pill p-pend">Pending</span>';
-    var cur=num(c.amount), prev=num(c.prevAmount), d="";
-    if(cur!==null && prev!==null && prev>0){
+    var cur=num(c.amount), prev=num(c.prevAmount), due=num(c.promised), extra="";
+    if(due!==null && due>(cur||0)){
+      extra+='<span class="delta">of '+money(due)+' promised &middot; '+money(outstanding(c))+' due</span>';
+    } else if(cur!==null && prev!==null && prev>0){
       var diff=cur-prev;
-      d='<span class="delta '+(diff>0?"up":diff<0?"down":"")+'">'+(diff>0?"+":"")+money(diff)+' vs last year</span>';
+      extra+='<span class="delta '+(diff>0?"up":diff<0?"down":"")+'">'+(diff>0?"+":"")+money(diff)+' vs last year</span>';
+    }
+    if(c.collectedBy || c.date){
+      extra+='<span class="meta">'+[esc(c.collectedBy||""),fmtDate(c.date)].filter(Boolean).join(" &middot; ")+'</span>';
     }
     return '<tr data-id="'+esc(c.id)+'">'+
       '<td class="stripe" style="background:'+stripe+'"></td>'+
       '<td class="sno num">'+esc(c.sno==null?"":c.sno)+'</td>'+
       '<td><span class="nm">'+esc(c.name)+'</span>'+
         (c.prevName?'<small>last year: '+esc(c.prevName)+'</small>':'')+
-        (c.phone?'<small>'+esc(c.phone)+'</small>':'')+'</td>'+
-      '<td class="amt num"><strong>'+money(c.amount)+'</strong>'+d+'</td>'+
+        phoneLinks(c.phone)+'</td>'+
+      '<td class="amt num"><strong>'+money(c.amount)+'</strong>'+extra+'</td>'+
       '<td class="amt num" style="color:var(--muted)">'+money(c.prevAmount)+'</td>'+
       '<td>'+pill+(c.tag?'<span class="sub2">'+esc(c.tag)+'</span>':'')+'</td>'+
       '<td style="max-width:250px;color:var(--ink-2);font-size:13px">'+esc(c.notes||"")+'</td>'+
@@ -827,20 +965,26 @@ function editContributor(c){
   var isNew=!c; c=c||{};
   openSheet(isNew?"Add contributor":"Edit contributor",[
     {k:"name",label:"Contributor name",value:c.name||"",hint:"Telugu script is fine"},
-    {k:"amount",label:"Amount received this year (₹)",type:"number",value:c.amount==null?"":c.amount,hint:"Leave blank until the chanda comes in"},
+    {k:"promised",label:"Promised (₹)",type:"number",value:c.promised==null?"":c.promised,hint:"What they committed to give. Leave blank if they paid in full straight away."},
+    {k:"amount",label:"Received so far (₹)",type:"number",value:c.amount==null?"":c.amount,hint:"Leave blank until the chanda comes in"},
+    {k:"collectedBy",label:"Collected by",value:c.collectedBy||"",hint:"Which team member received the money"},
+    {k:"date",label:"Date received",type:"date",value:c.date||""},
+    {k:"phone",label:"Phone",value:c.phone||"",hint:"10 digits, or with country code"},
     {k:"prevAmount",label:"Last year's amount (₹)",type:"number",value:c.prevAmount==null?"":c.prevAmount},
     {k:"prevName",label:"Name in last year's ledger",value:c.prevName||""},
-    {k:"phone",label:"Phone",value:c.phone||""},
     {k:"tag",label:"Reconciliation",type:"select",allowBlank:true,options:TAGS,value:c.tag||""},
     {k:"notes",label:"Notes",type:"textarea",value:c.notes||""}
   ],function(v){
     if(!v.name){ toast("A name is required."); return; }
     if(isNew){
       contributors().push({id:uid(),sno:nextSno(contributors()),name:v.name,amount:v.amount,
+        promised:v.promised,collectedBy:v.collectedBy,date:v.date,
         prevAmount:v.prevAmount,prevName:v.prevName,phone:v.phone,tag:v.tag,notes:v.notes});
       toast("Contributor added.");
     } else {
-      c.name=v.name; c.amount=v.amount; c.prevAmount=v.prevAmount; c.prevName=v.prevName;
+      c.name=v.name; c.amount=v.amount; c.promised=v.promised;
+      c.collectedBy=v.collectedBy; c.date=v.date;
+      c.prevAmount=v.prevAmount; c.prevName=v.prevName;
       c.phone=v.phone; c.tag=v.tag; c.notes=v.notes;
       toast("Saved.");
     }
@@ -916,12 +1060,18 @@ function createYear(ny){
    ========================================================= */
 function exportWorkbook(){
   var y=ui.year, py=y-1, cs=contributors(), es=expenses();
-  var cRows=[["S.No","Contributor ("+y+")",py+" Record Name",py+" Paid (₹)",y+" Paid (₹)","Status","Reconciliation","Phone","Notes"]];
+  var stLabel={paid:"Received",partial:"Part paid","new":"New",pending:"Pending"};
+  var cRows=[["S.No","Contributor ("+y+")",py+" Record Name",py+" Paid (₹)",
+              "Promised (₹)",y+" Received (₹)","Outstanding (₹)","Status",
+              "Collected By","Date","Reconciliation","Phone","Notes"]];
   sortRows(cs,{k:"sno",dir:1}).forEach(function(c){
-    cRows.push([c.sno,c.name,c.prevName||"",num(c.prevAmount),num(c.amount),
-      paidState(c)==="paid"?"Received":paidState(c)==="new"?"New":"Pending",c.tag||"",c.phone||"",c.notes||""]);
+    cRows.push([c.sno,c.name,c.prevName||"",num(c.prevAmount),
+      num(c.promised),num(c.amount),outstanding(c)||null,stLabel[paidState(c)],
+      c.collectedBy||"",c.date||"",c.tag||"",c.phone||"",c.notes||""]);
   });
-  cRows.push([]); cRows.push(["","Total","",sumOf(cs,"prevAmount"),sumOf(cs,"amount")]);
+  var owedTotal=cs.reduce(function(t,c){ return t+outstanding(c); },0);
+  cRows.push([]);
+  cRows.push(["","Total","",sumOf(cs,"prevAmount"),sumOf(cs,"promised"),sumOf(cs,"amount"),owedTotal]);
   var eRows=[["S.No","Head","Item / Description","Amount (₹)","Paid By","Mode","Date","Receipt / Notes"]];
   sortRows(es,{k:"sno",dir:1}).forEach(function(e){
     eRows.push([e.sno,e.category,e.item||"",num(e.amount),e.paidBy||"",e.mode||"",e.date||"",e.notes||""]);
@@ -932,7 +1082,8 @@ function exportWorkbook(){
     [1,"Total Collections "+py+" (Reference)",sumOf(cs,"prevAmount"),"Historical benchmark"],
     [2,"Total Collections "+y+" (Actual)",coll,"Entered in the register"],
     [3,"Total Expenses (Actual)",exp,"From the expenses sheet"],
-    [4,"Net Balance in Hand ("+y+")",coll-exp,"Collections minus expenses"]];
+    [4,"Net Balance in Hand ("+y+")",coll-exp,"Collections minus expenses"],
+    [5,"Promised but not received",cs.reduce(function(t,c){return t+outstanding(c);},0),"Outstanding pledges"]];
   try{
     var bytes=buildXlsx([{name:"Collections "+y,rows:cRows},{name:"Expenses",rows:eRows},{name:"Summary & Balance",rows:sRows}]);
     downloadBlob(bytes,"Chanda_"+y+".xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -954,29 +1105,59 @@ function ghHeaders(){
   return {"Authorization":"Bearer "+cfg.token, "Accept":"application/vnd.github+json",
           "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json"};
 }
-function ghPath(){ return "https://api.github.com/repos/"+cfg.owner+"/"+cfg.repo+"/contents/"+(cfg.path||DATA_FILE); }
+function ghUrl(path){ return "https://api.github.com/repos/"+cfg.owner+"/"+cfg.repo+"/contents/"+path; }
+function putFile(path, content, message){
+  return fetch(ghUrl(path)+"?ref="+encodeURIComponent(cfg.branch||"main"),{headers:ghHeaders()})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      return fetch(ghUrl(path),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
+        message:message, content:b64e(new TextEncoder().encode(content)),
+        sha: j ? j.sha : undefined, branch: cfg.branch||"main"
+      })});
+    }).then(function(r){
+      if(!r.ok) return r.json().then(function(j){
+        throw new Error((j.message||("HTTP "+r.status))+" — "+path);
+      });
+      return true;
+    });
+}
+
+/* Summary for people outside the team: money in, money out, nothing personal.
+   No names, no phone numbers, no individual amounts. */
+function publicSummary(){
+  var cs=contributors(), es=expenses();
+  var coll=sumOf(cs,"amount"), exp=sumOf(es,"amount");
+  var target=num(year().target); if(target===null) target=sumOf(cs,"prevAmount")||0;
+  return {
+    v:1, festivalName: doc.festivalName||"Chanda Register", year: ui.year, updatedAt: nowISO(),
+    collected: coll, spent: exp, balance: coll-exp, target: target,
+    contributorCount: cs.length,
+    paidCount: cs.filter(function(c){ var st=paidState(c); return st==="paid"||st==="partial"; }).length,
+    expenses: es.filter(function(e){ return num(e.amount); })
+                .map(function(e){ return {category:e.category, item:e.item||"", amount:num(e.amount)}; })
+  };
+}
+
 function publish(){
   if(!cfg.token||!cfg.owner||!cfg.repo){ openSettings(); return; }
   var btn=$("btn-publish"); btn.disabled=true; btn.textContent="Publishing…";
-  var enc;
-  encryptPayload(doc, CODE).then(function(bundle){
-    enc=bundle;
-    return fetch(ghPath()+"?ref="+encodeURIComponent(cfg.branch||"main"),{headers:ghHeaders()})
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(j){ return j ? j.sha : null; });
-  }).then(function(sha){
-    var content=JSON.stringify(enc,null,1);
-    var b64=b64e(new TextEncoder().encode(content));
-    return fetch(ghPath(),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
-      message:"Update chanda register ("+ui.year+") — "+new Date().toLocaleString("en-IN"),
-      content:b64, sha:sha||undefined, branch:cfg.branch||"main"
-    })});
-  }).then(function(r){
-    if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||("HTTP "+r.status)); });
+  var stamp=new Date().toLocaleString("en-IN");
+  encryptPayload(doc, CODE).then(function(full){
+    return putFile(cfg.path||DATA_FILE, JSON.stringify(full,null,1),
+      "Update chanda register ("+ui.year+") — "+stamp);
+  }).then(function(){
+    var pc=String(doc.publicCode||"").trim();
+    if(!pc) return null;
+    return encryptPayload(publicSummary(), pc).then(function(pub){
+      return putFile(PUBLIC_FILE, JSON.stringify(pub,null,1), "Update public summary — "+stamp);
+    });
+  }).then(function(){
     dirty=false; try{ localStorage.removeItem(LS_KEY); }catch(e){}
     renderDirty();
     btn.disabled=false; btn.textContent="Publish to GitHub";
-    toast("Published. GitHub Pages updates in about a minute.");
+    toast(String(doc.publicCode||"").trim()
+      ? "Published — register and public summary. Live in about a minute."
+      : "Published. GitHub Pages updates in about a minute.");
   }).catch(function(err){
     btn.disabled=false; btn.textContent="Publish to GitHub";
     toast("Publish failed: "+err.message);
@@ -990,6 +1171,8 @@ function openSettings(){
     : "Tap again to remove "+ui.year;
   openSheet("Settings",[
     {k:"festivalName",label:"Register name",value:doc.festivalName||""},
+    {k:"publicCode",label:"Public view code",value:doc.publicCode||"",
+     hint:"Share this with people outside the team. It opens a view of totals and expenses only — no names, no phone numbers, no individual amounts. Leave blank to stop updating the public page."},
     {k:"owner",label:"GitHub username",value:cfg.owner||"",hint:"Needed only to publish changes for everyone"},
     {k:"repo",label:"Repository",value:cfg.repo||""},
     {k:"branch",label:"Branch",value:cfg.branch||"main"},
@@ -1000,6 +1183,11 @@ function openSettings(){
     if(v.festivalName && v.festivalName!==doc.festivalName){
       doc.festivalName=v.festivalName; $("fest-name").textContent=v.festivalName;
       document.title=v.festivalName; markDirty();
+    }
+    if((v.publicCode||"")!==(doc.publicCode||"")){
+      if(v.publicCode && v.publicCode===CODE){
+        toast("The public code must differ from the team code.");
+      } else { doc.publicCode=v.publicCode; markDirty(); }
     }
     cfg.owner=v.owner; cfg.repo=v.repo; cfg.branch=v.branch||"main";
     cfg.path=v.path||DATA_FILE; cfg.token=v.token;
