@@ -202,6 +202,8 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .delta.up{color:var(--good)} .delta.down{color:var(--danger)}
 .rowbtn{background:none;border:1px solid var(--line-strong);border-radius:7px;padding:4px 9px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .rowbtn:hover{background:var(--surface-2);color:var(--ink)}
+.plain-wrap{box-shadow:none;border:0;background:transparent}
+.pub-table{min-width:420px}
 
 /* On a phone a wide table means dragging sideways to read one row.
    Below 720px each row becomes a card with every field on screen. */
@@ -225,6 +227,9 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
   tbody td.st{margin-top:9px}
   tbody td:last-child{margin-top:11px}
   tbody td:last-child .rowbtn{width:100%;padding:8px}
+  .pub-table{min-width:0}
+  #pub tbody tr{padding-left:14px}
+  #pub tbody td.it{margin-top:1px}
   .delta,.meta{display:block}
 }
 
@@ -411,8 +416,8 @@ footer p{margin:0}
     <div class="card chart" style="margin-top:14px">
       <h3>Expense detail</h3>
       <p class="cap">The same figures, item by item</p>
-      <div class="tablewrap" style="box-shadow:none;border:0;max-height:none">
-        <table style="min-width:420px">
+      <div class="tablewrap plain-wrap">
+        <table class="pub-table">
           <thead><tr><th class="plain">Head</th><th class="plain">Item</th><th class="plain" style="text-align:right">Amount</th></tr></thead>
           <tbody id="pub-exp-body"></tbody>
         </table>
@@ -745,8 +750,8 @@ function renderPublicYear(y){
   $("pub-exp-body").innerHTML = list.slice().sort(function(a,b){ return (num(b.amount)||0)-(num(a.amount)||0); })
     .map(function(e){
       return '<tr><td><span class="nm">'+esc(e.category||"—")+'</span></td>'+
-        '<td style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
-        '<td class="amt num"><strong>'+money(e.amount)+'</strong></td></tr>';
+        '<td class="it" style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
+        '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
     }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
 
   var when = sum.updatedAt ? new Date(sum.updatedAt).toLocaleString("en-IN") : "";
