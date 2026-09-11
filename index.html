@@ -203,6 +203,30 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .rowbtn{background:none;border:1px solid var(--line-strong);border-radius:7px;padding:4px 9px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .rowbtn:hover{background:var(--surface-2);color:var(--ink)}
 .plain-wrap{box-shadow:none;border:0;background:transparent}
+.gal{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:4px}
+.gal figure{margin:0;position:relative;border-radius:10px;overflow:hidden;background:var(--surface-2);
+  border:1px solid var(--line);aspect-ratio:4/3;cursor:pointer}
+.gal img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
+.gal figure:hover img{transform:scale(1.04)}
+.gal figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 9px 7px;font-size:11.5px;color:#fff;
+  background:linear-gradient(transparent,rgba(0,0,0,.72));line-height:1.35}
+.gal .vid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;height:100%;
+  background:linear-gradient(150deg,#1d2430,#12151c);color:#eac673;text-decoration:none;padding:10px;text-align:center}
+.gal .vid .host{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8e98a9}
+.gal .vid .cap{font-size:12px;color:#e6dcc6;line-height:1.35}
+.gal .del{position:absolute;top:6px;right:6px;z-index:2;background:rgba(0,0,0,.62);color:#fff;border:0;
+  border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;display:none}
+.gal figure:hover .del{display:block}
+.lightbox{position:fixed;inset:0;z-index:120;background:rgba(10,9,8,.94);display:flex;align-items:center;
+  justify-content:center;flex-direction:column;gap:12px;padding:20px}
+.lightbox img{max-width:100%;max-height:78vh;border-radius:8px;object-fit:contain}
+.lightbox .lb-cap{color:#e6dcc6;font-size:13.5px;text-align:center;max-width:640px}
+.lightbox .lb-x{position:absolute;top:14px;right:16px;background:none;border:0;color:#d8cdb8;font-size:30px;cursor:pointer}
+.lightbox .lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);
+  border:0;color:#f0e6d2;font-size:26px;width:44px;height:60px;cursor:pointer;border-radius:8px}
+.lightbox .lb-prev{left:12px} .lightbox .lb-next{right:12px}
+.upbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.upnote{font-size:12.5px;color:var(--muted)}
 .pub-table{min-width:420px}
 
 /* On a phone a wide table means dragging sideways to read one row.
@@ -299,6 +323,7 @@ footer p{margin:0}
     <button class="tab" id="tab-dash" role="tab" aria-selected="true" aria-controls="panel-dash" type="button">Dashboard</button>
     <button class="tab" id="tab-coll" role="tab" aria-selected="false" aria-controls="panel-coll" type="button">Collections</button>
     <button class="tab" id="tab-exp" role="tab" aria-selected="false" aria-controls="panel-exp" type="button">Expenses</button>
+    <button class="tab" id="tab-media" role="tab" aria-selected="false" aria-controls="panel-media" type="button">Photos</button>
   </div></div>
 
   <main>
@@ -377,6 +402,20 @@ footer p{margin:0}
       </tr></thead><tbody id="e-body"></tbody></table></div>
       <p class="empty" id="e-empty" hidden>No expenses match that search.</p>
     </section>
+
+    <section class="panel" id="panel-media" role="tabpanel" aria-labelledby="tab-media" hidden>
+      <div class="upbar">
+        <button class="btn" id="m-add" type="button">Add photos</button>
+        <button class="btn sec" id="m-link" type="button">Add a video link</button>
+        <input type="file" id="m-file" accept="image/*" multiple hidden>
+        <span class="upnote" id="m-note"></span>
+      </div>
+      <div class="card chart">
+        <h3>Photos and videos &mdash; <span id="m-year"></span></h3>
+        <p class="cap">Everyone with the public code sees these. Photos are stored as ordinary files, so treat them as public.</p>
+        <div id="m-gal"></div>
+      </div>
+    </section>
   </main>
   <footer>
     <div class="foot-rule"></div>
@@ -412,6 +451,11 @@ footer p{margin:0}
       <h3>Where the money went</h3>
       <p class="cap">Every rupee spent, grouped by head</p>
       <div id="pub-chart"></div>
+    </div>
+    <div class="card chart" id="pub-gal-card" style="margin-top:14px" hidden>
+      <h3>From the festival</h3>
+      <p class="cap" id="pub-gal-cap"></p>
+      <div id="pub-gal"></div>
     </div>
     <div class="card chart" style="margin-top:14px">
       <h3>Expense detail</h3>
@@ -454,6 +498,9 @@ footer p{margin:0}
 
 var DATA_FILE = "data.json";
 var PUBLIC_FILE = "public.json";
+var MEDIA_FILE  = "media.json";
+var MEDIA = {v:1, items:[]};
+var MEDIA_SHA = null;
 var PBKDF2_ITERS = 210000;
 var LS_KEY = "chanda.local.v1";
 var LS_CFG = "chanda.cfg.v1";
@@ -682,6 +729,7 @@ $("gate-form").addEventListener("submit", function(ev){
       var local=null;
       try{ local=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){}
       BASE = JSON.parse(JSON.stringify(data));
+      loadMedia().then(function(){ if(!$("panel-media").hidden) renderMedia(); });
       if(local && local.doc && local.savedAt > (bundle.savedAt||"")){
         doc = local.doc; dirty = true;
       } else { doc = data; dirty = false; try{ localStorage.removeItem(LS_KEY); }catch(e){} }
@@ -690,7 +738,9 @@ $("gate-form").addEventListener("submit", function(ev){
   }).catch(function(){
     // not the team code — try the public summary, which holds no personal data
     return fetchBundle(PUBLIC_FILE).then(function(pb){
-      return decryptBundle(pb, code).then(function(summary){ startPublic(summary); });
+      return decryptBundle(pb, code).then(function(summary){
+        return loadMedia().then(function(){ startPublic(summary); });
+      });
     }).catch(function(){
       btn.disabled=false; btn.textContent="Open register";
       $("gate-err").textContent = reached
@@ -753,6 +803,11 @@ function renderPublicYear(y){
         '<td class="it" style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
         '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
     }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
+
+  var shown=renderGallery("pub-gal", y, false);
+  $("pub-gal-card").hidden = !shown;
+  if(shown) $("pub-gal-cap").textContent = shown+" photo"+(shown===1?"":"s")+" and video"+
+    (shown===1?"":"s")+" from "+y;
 
   var when = sum.updatedAt ? new Date(sum.updatedAt).toLocaleString("en-IN") : "";
   $("pub-note").textContent = "Public summary — totals and expenses only. Contributor names and individual "+
@@ -975,6 +1030,7 @@ function renderAll(){
   $("lg-cur").textContent=y; $("lg-prev").textContent=py+" benchmark";
   $("chart1-cap").textContent="This year against the "+py+" ledger, top 12 by amount";
   $("foot").textContent = contributors().length+" contributors · "+expenses().length+" expense heads · "+y+" register";
+  if(!$("panel-media").hidden) renderMedia();
 }
 
 /* =========================================================
@@ -1195,6 +1251,197 @@ function putFile(path, content, message){
       });
       return true;
     });
+}
+
+/* =========================================================
+   Photos and videos. Unlike the ledger these are ordinary
+   files in the repository — public to anyone with the URL.
+   ========================================================= */
+function loadMedia(){
+  return fetch(MEDIA_FILE+"?t="+Date.now(),{cache:"no-store"})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ if(j && j.items) MEDIA=j; })
+    .catch(function(){});
+}
+function mediaFor(y){
+  return (MEDIA.items||[]).filter(function(m){ return String(m.year)===String(y); });
+}
+function videoHost(url){
+  var u=String(url||"").toLowerCase();
+  if(/youtu\.be|youtube\./.test(u)) return "YouTube";
+  if(/instagram\./.test(u)) return "Instagram";
+  if(/drive\.google|docs\.google/.test(u)) return "Google Drive";
+  if(/facebook\.|fb\.watch/.test(u)) return "Facebook";
+  return "Video";
+}
+function renderGallery(hostId, y, editable){
+  var host=$(hostId); if(!host) return 0;
+  var items=mediaFor(y);
+  if(!items.length){
+    host.innerHTML = editable
+      ? '<p class="empty">Nothing added for '+y+' yet. Use “Add photos” above.</p>' : "";
+    return 0;
+  }
+  host.innerHTML='<div class="gal">'+items.map(function(m,i){
+    var del = editable ? '<button class="del" data-del="'+esc(m.id)+'" title="Remove" type="button">&times;</button>' : '';
+    if(m.type==="video"){
+      return '<figure>'+del+'<a class="vid" href="'+esc(m.url)+'" target="_blank" rel="noopener">'+
+        '<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">'+
+        '<circle cx="17" cy="17" r="16" fill="none" stroke="#d2a43c" stroke-width="1.5"/>'+
+        '<path d="M13.5 10.5 L24 17 L13.5 23.5 Z" fill="#d2a43c"/></svg>'+
+        '<span class="host">'+esc(videoHost(m.url))+'</span>'+
+        (m.caption?'<span class="cap">'+esc(m.caption)+'</span>':'')+'</a></figure>';
+    }
+    return '<figure data-i="'+i+'">'+del+'<img src="'+esc(m.file)+'" alt="'+esc(m.caption||("Photo from "+y))+'" loading="lazy">'+
+      (m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>';
+  }).join("")+'</div>';
+
+  host.querySelectorAll("figure[data-i]").forEach(function(f){
+    f.addEventListener("click",function(e){
+      if(e.target.closest("[data-del]")) return;
+      openLightbox(items, Number(f.dataset.i));
+    });
+  });
+  if(editable){
+    host.querySelectorAll("[data-del]").forEach(function(btn){
+      btn.addEventListener("click",function(e){
+        e.stopPropagation();
+        if(btn.dataset.armed){ removeMedia(btn.dataset.del); }
+        else { btn.dataset.armed="1"; btn.textContent="?"; btn.title="Tap again to remove"; }
+      });
+    });
+  }
+  return items.length;
+}
+function openLightbox(items, i){
+  var photos=items.filter(function(m){ return m.type!=="video"; });
+  var idx=Math.max(0, photos.indexOf(items[i]));
+  var box=document.createElement("div");
+  box.className="lightbox";
+  function draw(){
+    var m=photos[idx];
+    box.innerHTML='<button class="lb-x" aria-label="Close">&times;</button>'+
+      (photos.length>1?'<button class="lb-nav lb-prev" aria-label="Previous">&#8249;</button>':'')+
+      '<img src="'+esc(m.file)+'" alt="'+esc(m.caption||"")+'">'+
+      (m.caption?'<div class="lb-cap">'+esc(m.caption)+'</div>':'')+
+      (photos.length>1?'<button class="lb-nav lb-next" aria-label="Next">&#8250;</button>':'')+
+      '<div class="lb-cap" style="opacity:.6">'+(idx+1)+' of '+photos.length+'</div>';
+    box.querySelector(".lb-x").onclick=close;
+    var pv=box.querySelector(".lb-prev"), nx=box.querySelector(".lb-next");
+    if(pv) pv.onclick=function(e){ e.stopPropagation(); idx=(idx-1+photos.length)%photos.length; draw(); };
+    if(nx) nx.onclick=function(e){ e.stopPropagation(); idx=(idx+1)%photos.length; draw(); };
+  }
+  function key(e){ if(e.key==="Escape") close(); if(e.key==="ArrowLeft"){idx=(idx-1+photos.length)%photos.length;draw();}
+                   if(e.key==="ArrowRight"){idx=(idx+1)%photos.length;draw();} }
+  function close(){ document.removeEventListener("keydown",key); box.remove(); }
+  box.addEventListener("click",function(e){ if(e.target===box) close(); });
+  document.addEventListener("keydown",key);
+  draw(); document.body.appendChild(box);
+}
+
+/* shrink a phone photo before it ever leaves the device */
+function compressImage(file, maxPx, quality){
+  return new Promise(function(resolve,reject){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width, h=img.height, sc=Math.min(1, maxPx/Math.max(w,h));
+      var c=document.createElement("canvas");
+      c.width=Math.round(w*sc); c.height=Math.round(h*sc);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(bl){ bl?resolve(bl):reject(new Error("could not read that image")); },"image/jpeg",quality);
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); reject(new Error("not an image")); };
+    img.src=url;
+  });
+}
+function blobToB64(bl){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(){ res(String(fr.result).split(",")[1]); };
+    fr.onerror=rej; fr.readAsDataURL(bl);
+  });
+}
+function saveManifest(msg){
+  return putFile(MEDIA_FILE, JSON.stringify(MEDIA,null,1), msg||"Update gallery");
+}
+function addPhotos(files){
+  if(!cfg.token){ toast("Add your GitHub token in Settings before uploading."); return; }
+  var list=[].slice.call(files).filter(function(f){ return /^image\//.test(f.type); });
+  if(!list.length){ toast("Those were not image files."); return; }
+  var note=$("m-note"); var done=0, failed=0;
+  note.textContent="Preparing "+list.length+" photo"+(list.length===1?"":"s")+"…";
+  var chain=Promise.resolve();
+  list.forEach(function(f){
+    chain=chain.then(function(){
+      note.textContent="Uploading "+(done+failed+1)+" of "+list.length+"…";
+      return compressImage(f, 1600, 0.82).then(function(bl){
+        return blobToB64(bl).then(function(b64){
+          var id=uid("m");
+          var path="media/"+ui.year+"/"+id+".jpg";
+          return fetch(ghUrl(path),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
+            message:"Add photo to "+ui.year+" gallery", content:b64, branch:cfg.branch||"main"
+          })}).then(function(r){
+            if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||("HTTP "+r.status)); });
+            MEDIA.items.push({id:id, year:ui.year, type:"photo", file:path,
+                              caption:"", addedAt:nowISO(), size:bl.size});
+            done++;
+          });
+        });
+      }).catch(function(){ failed++; });
+    });
+  });
+  chain.then(function(){
+    if(!done){ note.textContent="Nothing was uploaded."; toast("Upload failed."); return; }
+    MEDIA.updatedAt=nowISO();
+    return saveManifest("Add "+done+" photo(s) to "+ui.year).then(function(){
+      note.textContent=done+" uploaded"+(failed?", "+failed+" failed":"")+". Live in about a minute.";
+      renderMedia(); toast(done+" photo"+(done===1?"":"s")+" added.");
+    });
+  }).catch(function(err){
+    note.textContent="Upload failed: "+err.message;
+    toast("Upload failed: "+err.message);
+  });
+}
+function addVideoLink(){
+  if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
+  openSheet("Add a video link",[
+    {k:"url",label:"Link",value:"",hint:"A YouTube, Instagram, Facebook or Google Drive link. The video stays where it is — only the link is stored."},
+    {k:"caption",label:"Caption",value:""}
+  ],function(v){
+    if(!/^https?:\/\//i.test(v.url||"")){ toast("That does not look like a link."); return; }
+    MEDIA.items.push({id:uid("m"), year:ui.year, type:"video", url:v.url, caption:v.caption, addedAt:nowISO()});
+    MEDIA.updatedAt=nowISO();
+    saveManifest("Add a video link to "+ui.year).then(function(){
+      renderMedia(); toast("Video link added.");
+    }).catch(function(e){ toast("Could not save: "+e.message); });
+  },null,{saveLabel:"Add link"});
+}
+function removeMedia(id){
+  var i=-1;
+  for(var k=0;k<MEDIA.items.length;k++){ if(MEDIA.items[k].id===id){ i=k; break; } }
+  if(i<0) return;
+  var item=MEDIA.items[i];
+  MEDIA.items.splice(i,1); MEDIA.updatedAt=nowISO();
+  saveManifest("Remove an item from the "+item.year+" gallery").then(function(){
+    renderMedia(); toast("Removed.");
+    if(item.type==="photo" && item.file){
+      // tidy the file away too; harmless if it fails
+      fetch(ghUrl(item.file)+"?ref="+encodeURIComponent(cfg.branch||"main"),{headers:ghHeaders()})
+        .then(function(r){ return r.ok?r.json():null; })
+        .then(function(j){ if(!j) return;
+          return fetch(ghUrl(item.file),{method:"DELETE",headers:ghHeaders(),body:JSON.stringify({
+            message:"Delete gallery photo", sha:j.sha, branch:cfg.branch||"main"})});
+        }).catch(function(){});
+    }
+  }).catch(function(e){ toast("Could not save: "+e.message); });
+}
+function renderMedia(){
+  $("m-year").textContent=ui.year;
+  var n=renderGallery("m-gal", ui.year, true);
+  $("m-note").textContent = cfg.token ? (n?n+" item"+(n===1?"":"s")+" in "+ui.year:"")
+    : "Add your GitHub token in Settings to upload.";
+  $("m-add").disabled=!cfg.token; $("m-link").disabled=!cfg.token;
 }
 
 /* ---------- handover between collectors and the organiser ----------
@@ -1453,7 +1700,7 @@ function removeYear(y){
    Wiring
    ========================================================= */
 function tabTo(which){
-  [["dash","panel-dash"],["coll","panel-coll"],["exp","panel-exp"]].forEach(function(p){
+  [["dash","panel-dash"],["coll","panel-coll"],["exp","panel-exp"],["media","panel-media"]].forEach(function(p){
     var on=p[0]===which;
     $("tab-"+p[0]).setAttribute("aria-selected",on?"true":"false");
     $(p[1]).hidden=!on;
@@ -1462,6 +1709,10 @@ function tabTo(which){
 $("tab-dash").addEventListener("click",function(){tabTo("dash");});
 $("tab-coll").addEventListener("click",function(){tabTo("coll");});
 $("tab-exp").addEventListener("click",function(){tabTo("exp");});
+$("tab-media").addEventListener("click",function(){tabTo("media"); renderMedia();});
+$("m-add").addEventListener("click",function(){ $("m-file").click(); });
+$("m-file").addEventListener("change",function(){ if(this.files.length){ addPhotos(this.files); this.value=""; } });
+$("m-link").addEventListener("click",addVideoLink);
 $("c-search").addEventListener("input",function(){ ui.cSearch=this.value; renderContributors(); });
 $("e-search").addEventListener("input",function(){ ui.eSearch=this.value; renderExpenses(); });
 $("c-filters").addEventListener("click",function(e){
