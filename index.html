@@ -737,15 +737,19 @@ function openSheet(title,fields,onSave,onDelete,opts){
     else { ctl='<input type="'+(f.type||"text")+'" id="'+id+'" value="'+esc(f.value==null?"":f.value)+'"'+(f.type==="number"?' step="1" min="0" class="num"':'')+'>'; }
     return '<div class="fld"><label for="'+id+'">'+esc(f.label)+'</label>'+ctl+(f.hint?'<span class="hint">'+esc(f.hint)+'</span>':'')+'</div>';
   }).join("");
-  if(onDelete){
+  function twoTap(label,armedLabel,cls,fn){
     var d=document.createElement("button");
-    d.className="btn danger"; d.type="button";
-    d.textContent=opts.deleteLabel||"Delete this entry"; d.style.marginTop="4px";
+    d.className="btn "+cls; d.type="button"; d.textContent=label; d.style.marginTop="4px";
     d.addEventListener("click",function(){
-      if(d.dataset.armed){ closeSheet(); onDelete(); }
-      else { d.dataset.armed="1"; d.textContent=opts.deleteArmedLabel||"Tap again to confirm"; }
+      if(d.dataset.armed){ closeSheet(); fn(); }
+      else { d.dataset.armed="1"; d.textContent=armedLabel||"Tap again to confirm"; }
     });
     b.appendChild(d);
+  }
+  (opts.extras||[]).forEach(function(x){ twoTap(x.label,x.armedLabel,x.className||"sec",x.fn); });
+  if(onDelete){
+    twoTap(opts.deleteLabel||"Delete this entry", opts.deleteArmedLabel||"Tap again to confirm",
+           "danger", onDelete);
   }
   $("scrim").hidden=false;
   var first=b.querySelector("input,select,textarea"); if(first) first.focus();
@@ -949,7 +953,14 @@ function openSettings(){
     saveCfg(); renderDirty();
     toast(cfg.token?"Settings saved. Publishing is enabled on this device.":"Settings saved.");
   }, yrs.length>1?function(){ removeYear(ui.year); }:null,
-     {deleteLabel:"Remove "+ui.year+" from this register", deleteArmedLabel:armed});
+     {deleteLabel:"Remove "+ui.year+" from this register", deleteArmedLabel:armed,
+      extras: dirty?[{label:"Discard unpublished changes on this device",
+        armedLabel:"Tap again — this device reloads the published register",
+        className:"sec", fn:discardLocal}]:[]});
+}
+function discardLocal(){
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  location.reload();
 }
 function removeYear(y){
   delete doc.years[String(y)];
