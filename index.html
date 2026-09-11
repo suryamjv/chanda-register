@@ -10,7 +10,9 @@
   color-scheme: light;
   --paper:#faf7f5; --surface:#fffdfc; --surface-2:#f4efec; --line:#e8ded9; --line-strong:#d6c8c2;
   --ink:#1e1a18; --ink-2:#544944; --muted:#7b6d69;
-  --accent:#8e1f2f; --accent-ink:#8e1f2f; --accent-on:#fff5f2; --accent-soft:#f6e7e6;
+  --accent:#9a6b12; --accent-ink:#875d0e; --accent-on:#fffaf0; --accent-soft:#f7edd9;
+  --rail:#13161d; --rail-ink:#f2e7cf; --rail-dim:#9aa3b4; --rail-line:#2c3140;
+  --gold:#d2a43c; --gold-hi:#f0cd7a;
   --s25:#2a78d6; --s26:#eb6834; --sexp:#1baf7a;
   --good:#1f6b45; --good-soft:#e3f0e8;
   --wait:#8a5a06; --wait-soft:#f8eddb;
@@ -26,7 +28,9 @@
     color-scheme: dark;
     --paper:#15120f; --surface:#1d1a17; --surface-2:#252017; --line:#332c27; --line-strong:#493f38;
     --ink:#f4efea; --ink-2:#cfc3bb; --muted:#a1928a;
-    --accent:#a8303f; --accent-ink:#f0908e; --accent-on:#fff3f1; --accent-soft:#3a2023;
+    --accent:#8a5f10; --accent-ink:#e8c069; --accent-on:#fff8ea; --accent-soft:#33280f;
+    --rail:#0f1218; --rail-ink:#f2e7cf; --rail-dim:#9aa3b4; --rail-line:#262b35;
+    --gold:#d2a43c; --gold-hi:#f0cd7a;
     --s25:#3987e5; --s26:#d95926; --sexp:#199e70;
     --good:#63b98a; --good-soft:#1b2f23;
     --wait:#d6a23c; --wait-soft:#312516;
@@ -39,7 +43,9 @@
   color-scheme: dark;
   --paper:#15120f; --surface:#1d1a17; --surface-2:#252017; --line:#332c27; --line-strong:#493f38;
   --ink:#f4efea; --ink-2:#cfc3bb; --muted:#a1928a;
-  --accent:#a8303f; --accent-ink:#f0908e; --accent-on:#fff3f1; --accent-soft:#3a2023;
+  --accent:#8a5f10; --accent-ink:#e8c069; --accent-on:#fff8ea; --accent-soft:#33280f;
+  --rail:#0f1218; --rail-ink:#f2e7cf; --rail-dim:#9aa3b4; --rail-line:#262b35;
+  --gold:#d2a43c; --gold-hi:#f0cd7a;
   --s25:#3987e5; --s26:#d95926; --sexp:#199e70;
   --good:#63b98a; --good-soft:#1b2f23;
   --wait:#d6a23c; --wait-soft:#312516;
@@ -59,29 +65,59 @@ button{font:inherit;color:inherit}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 /* ---------- gate ---------- */
-#gate{position:fixed;inset:0;z-index:100;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:24px}
-.gatebox{width:min(400px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:30px 28px;display:flex;flex-direction:column;gap:16px}
-.gatebox .mark{width:40px;height:40px;border-radius:10px;background:var(--accent);color:var(--accent-on);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;letter-spacing:-.03em}
-.gatebox h1{font-size:21px}
-.gatebox p{margin:0;color:var(--muted);font-size:13.5px}
-.gatebox input{font:inherit;letter-spacing:.14em;text-transform:uppercase;text-align:center;font-family:var(--mono);
-  padding:13px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);width:100%}
-.gate-err{color:var(--danger);font-size:13px;min-height:18px}
+#gate{position:fixed;inset:0;z-index:100;overflow-y:auto;padding:24px;
+  background:radial-gradient(125% 85% at 50% 0%,#1e2634 0%,#11151c 58%,#0a0c11 100%);
+  display:flex;align-items:center;justify-content:center}
+.gatebox{width:min(432px,100%);position:relative;text-align:center;
+  background:linear-gradient(180deg,#171c26,#11141b);border:1px solid #2c3242;border-radius:16px;
+  box-shadow:0 30px 70px -32px rgba(0,0,0,.9);padding:28px 26px 26px;
+  display:flex;flex-direction:column;gap:13px}
+.gatebox::before{content:"";position:absolute;inset:0;border-radius:16px;padding:1px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(240,205,122,.6),rgba(240,205,122,0) 42%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+.shloka{margin:0;color:#c6b189;font-size:12.5px;line-height:1.9}
+.rule{display:flex;align-items:center;gap:9px}
+.rule span{height:1px;flex:1;background:linear-gradient(90deg,transparent,#6d5c34)}
+.rule span+span{background:linear-gradient(90deg,#6d5c34,transparent)}
+.rule i{color:var(--gold);font-style:normal;font-size:10px;letter-spacing:.3em}
+.gatebox h1{font-size:23px;line-height:1.38;color:#eac673}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .gatebox h1{background:linear-gradient(180deg,#f8e3ab,#d8a93f 54%,#a87c22);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+}
+.gatebox .en{margin:0;color:#8e98a9;font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+.anniv{display:flex;align-items:center;justify-content:center;gap:11px;margin:1px 0 0}
+.anniv b{font-size:36px;line-height:.92;color:#eac673;font-weight:700;letter-spacing:-.04em}
+.anniv span{font-size:11.5px;color:#c6b189;text-align:left;line-height:1.5}
+.anniv .yr{font-size:10px;color:#8e98a9;letter-spacing:.18em}
+.values{margin:0;color:#c6b189;font-size:12.5px}
+.gatebox .lead{margin:0;color:#8992a3;font-size:12.5px;line-height:1.65}
+.gatebox input{font:inherit;letter-spacing:.18em;text-transform:uppercase;text-align:center;font-family:var(--mono);
+  padding:13px;border:1px solid #39405280;border-radius:9px;background:#0d1016;color:#f2e7cf;width:100%}
+.gatebox input::placeholder{color:#5d6779;letter-spacing:.18em}
+.gatebox input:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+#gate-go{background:linear-gradient(180deg,#e7c069,#c9932c);color:#1b1508;border:0;font-weight:600;letter-spacing:.01em}
+#gate-go:hover{filter:brightness(1.06)}
+#gate-go:disabled{opacity:.6}
+.morya{margin:3px 0 0;color:var(--gold);font-size:12.5px}
+.gate-err{color:#ff9086;font-size:13px;min-height:18px}
 
 /* ---------- rail ---------- */
-.rail{background:var(--accent);color:var(--accent-on)}
+.rail{background:var(--rail);color:var(--rail-ink);border-bottom:1px solid var(--rail-line);
+  box-shadow:inset 0 -1px 0 rgba(240,205,122,.14)}
 .rail-in{max-width:1180px;margin:0 auto;padding:13px 20px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
 .brand{display:flex;flex-direction:column;gap:1px;margin-right:auto;min-width:0}
-.brand h1{font-size:18px;line-height:1.15}
-.brand .sub{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;opacity:.72}
-.yearpick{display:flex;align-items:center;background:rgba(255,255,255,.13);border-radius:999px;padding:3px}
-.yearpick select{appearance:none;background:transparent;border:0;color:var(--accent-on);font-family:var(--mono);font-size:14px;font-weight:600;padding:5px 9px;cursor:pointer}
+.brand h1{font-size:18px;line-height:1.15;color:#eac673}
+.brand .sub{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--rail-dim)}
+.yearpick{display:flex;align-items:center;background:rgba(240,205,122,.1);border:1px solid rgba(240,205,122,.22);border-radius:999px;padding:3px}
+.yearpick select{appearance:none;background:transparent;border:0;color:var(--rail-ink);font-family:var(--mono);font-size:14px;font-weight:600;padding:5px 9px;cursor:pointer}
 .yearpick select option{color:#1e1a18;background:#fff}
-.ghost{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:var(--accent-on);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
-.ghost:hover{background:rgba(255,255,255,.24)}
+.ghost{background:rgba(240,205,122,.09);border:1px solid rgba(240,205,122,.28);color:#eac673;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.ghost:hover{background:rgba(240,205,122,.2)}
 .rail-figs{display:flex;gap:20px;flex-wrap:wrap}
 .rfig{display:flex;flex-direction:column;line-height:1.15}
-.rfig .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.72}
+.rfig .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--rail-dim)}
 .rfig .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:17px;font-weight:600}
 
 .tabs{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
@@ -145,7 +181,7 @@ tbody tr:hover{background:var(--surface-2)}
 td.sno{color:var(--muted);width:44px}
 td.amt{text-align:right;white-space:nowrap}
 .nm{font-weight:500}
-.nm small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;line-height:1.4}
 .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:500;white-space:nowrap}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .p-paid{background:var(--good-soft);color:var(--good)}
@@ -172,19 +208,31 @@ td.amt{text-align:right;white-space:nowrap}
 .banner{padding:11px 14px;border-radius:8px;font-size:13.5px;margin-bottom:16px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .banner .btn{padding:5px 11px;font-size:13px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:90;background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-size:13.5px;box-shadow:var(--shadow);max-width:92vw;text-align:center}
-footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:12.5px}
+footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);font-size:12.5px;
+  text-align:center;display:flex;flex-direction:column;gap:7px}
+footer p{margin:0}
+.foot-values{color:var(--ink-2);font-size:12.5px}
+.foot-values b{font-weight:600;color:var(--accent-ink)}
+.foot-morya{color:var(--accent-ink);font-size:13px}
+.foot-rule{height:1px;background:linear-gradient(90deg,transparent,var(--line-strong),transparent);margin:4px 0 2px}
 </style>
 </head>
 <body>
 
 <div id="gate">
   <form class="gatebox" id="gate-form">
-    <div class="mark">చ</div>
-    <h1>Chanda Register</h1>
-    <p>Enter the access code to open the register. The ledger is encrypted with this code &mdash; without it, nothing on this page can be read.</p>
+    <p class="shloka te">వక్రతుండ మహాకాయ సూర్యకోటి సమప్రభ &#x0964;<br>నిర్విఘ్నం కురు మే దేవ సర్వకార్యేషు సర్వదా &#x0965;&#x0965;</p>
+    <div class="rule"><span></span><i>&#10086;</i><span></span></div>
+    <h1 class="te">టీమ్ తెలుగు యువత మురికిపూడి</h1>
+    <p class="en">Team Telugu Yuvatha Murikipudi</p>
+    <div class="anniv"><b>5</b><span><span class="te">వ వార్షికోత్సవం</span><br><span class="yr">FIFTH YEAR</span></span></div>
+    <p class="values te">ఐక్యత &middot; సేవ &middot; సంస్కృతి &middot; నిబద్ధత &middot; విజయం</p>
+    <div class="rule"><span></span><i>&#10086;</i><span></span></div>
+    <p class="lead">Chanda &amp; expenses register. Enter the access code to open it &mdash; the ledger is encrypted with this code, so without it nothing on this page can be read.</p>
     <input id="gate-code" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ACCESS CODE" aria-label="Access code">
     <div class="gate-err" id="gate-err"></div>
     <button class="btn" type="submit" id="gate-go">Open register</button>
+    <p class="morya te">గణపతి బప్పా మోరియా ! మంగళమూర్తి మోరియా !!</p>
   </form>
 </div>
 
@@ -193,7 +241,7 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);fon
     <div class="rail-in">
       <div class="brand">
         <h1 id="fest-name">Vinayaka Chavithi Chanda</h1>
-        <span class="sub">Collections &amp; expenses register</span>
+        <span class="sub">Team Telugu Yuvatha Murikipudi &middot; 5th year</span>
       </div>
       <div class="yearpick"><select id="year-select" aria-label="Festival year"></select></div>
       <button class="ghost" id="btn-newyear" type="button">Start next year</button>
@@ -286,7 +334,12 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--muted);fon
       <p class="empty" id="e-empty" hidden>No expenses match that search.</p>
     </section>
   </main>
-  <footer id="foot"></footer>
+  <footer>
+    <div class="foot-rule"></div>
+    <p class="foot-values te">ఐక్యత <b>Unity</b> &middot; సేవ <b>Service</b> &middot; సంస్కృతి <b>Culture</b> &middot; నిబద్ధత <b>Commitment</b> &middot; విజయం <b>Success</b></p>
+    <p id="foot"></p>
+    <p class="foot-morya te">గణపతి బప్పా మోరియా ! మంగళమూర్తి మోరియా !!</p>
+  </footer>
 </div>
 
 <div class="scrim" id="scrim" hidden>
