@@ -172,9 +172,9 @@ textarea{resize:vertical;min-height:62px}
 .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-ink);color:var(--accent-ink);font-weight:500}
 
-.tablewrap{overflow:auto;max-height:calc(100dvh - 168px);border:1px solid var(--line);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow);overscroll-behavior:contain}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow)}
 table{border-collapse:collapse;width:100%;min-width:760px}
-thead th{position:sticky;top:0;background:var(--surface);z-index:5;box-shadow:0 1px 0 var(--line);text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+thead th{background:var(--surface);text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
 thead th.plain{cursor:default}
 tbody td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 tbody tr{scroll-margin-top:48px}
