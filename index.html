@@ -280,6 +280,7 @@ footer p{margin:0}
       </div>
       <div class="yearpick"><select id="year-select" aria-label="Festival year"></select></div>
       <button class="ghost" id="btn-newyear" type="button">Start next year</button>
+      <button class="ghost" id="btn-import" type="button" hidden>Import</button>
       <button class="ghost" id="btn-settings" type="button">Settings</button>
       <div class="rail-figs">
         <div class="rfig"><span class="k">Collected</span><span class="v" id="rf-coll">₹0</span></div>
@@ -299,6 +300,7 @@ footer p{margin:0}
     <div id="dirty-banner" class="banner" hidden>
       <span id="dirty-text">You have unsaved changes on this device.</span>
       <button class="btn" id="btn-publish" type="button">Publish to GitHub</button>
+      <button class="btn" id="btn-share" type="button">Send my entries</button>
       <button class="btn sec" id="btn-backup" type="button">Download backup</button>
     </div>
 
@@ -647,8 +649,9 @@ function renderDirty(){
   b.hidden=false;
   $("dirty-text").textContent = cfg.token
     ? "Unsaved changes on this device. Publish to update the shared register for everyone."
-    : "Changes are saved on this device only. Download a backup, or add a GitHub token in Settings to publish for everyone.";
+    : "Your entries are saved on this phone only. Tap \u201cSend my entries\u201d and share them with whoever publishes the register.";
   $("btn-publish").hidden = !cfg.token;
+  $("btn-share").hidden = !!cfg.token;
 }
 
 /* =========================================================
@@ -673,6 +676,7 @@ $("gate-form").addEventListener("submit", function(ev){
       // prefer newer unpublished local edits over the published file
       var local=null;
       try{ local=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){}
+      BASE = JSON.parse(JSON.stringify(data));
       if(local && local.doc && local.savedAt > (bundle.savedAt||"")){
         doc = local.doc; dirty = true;
       } else { doc = data; dirty = false; try{ localStorage.removeItem(LS_KEY); }catch(e){} }
@@ -693,6 +697,7 @@ $("gate-form").addEventListener("submit", function(ev){
 });
 
 var PUB=null;
+var BASE=null;   // the published register as it stood when this device loaded
 function startPublic(sum){
   // a v1 file carried a single year; wrap it so the rest of this is uniform
   if(!sum.years){
@@ -753,6 +758,7 @@ function renderPublicYear(y){
 function startApp(){
   $("gate").hidden = true;
   $("app").hidden = false;
+  $("btn-import").hidden = !cfg.token;
   document.title = (doc.festivalName||"Chanda Register");
   $("fest-name").textContent = doc.festivalName || "Chanda Register";
   ui.year = doc.activeYear || Math.max.apply(null, Object.keys(doc.years).map(Number));
@@ -984,6 +990,10 @@ function openSheet(title,fields,onSave,onDelete,opts){
       ctl='<select id="'+id+'">'+(f.allowBlank?'<option value=""></option>':'')+
         f.options.map(function(o){ return '<option value="'+esc(o)+'"'+(String(f.value||"")===o?" selected":"")+'>'+esc(o)+'</option>'; }).join("")+'</select>';
     } else if(f.type==="textarea"){ ctl='<textarea id="'+id+'">'+esc(f.value||"")+'</textarea>'; }
+    else if(f.list && f.list.length){
+      ctl='<input type="text" id="'+id+'" list="'+id+'-opts" value="'+esc(f.value==null?"":f.value)+'">'+
+        '<datalist id="'+id+'-opts">'+f.list.map(function(o){ return '<option value="'+esc(o)+'"></option>'; }).join("")+'</datalist>';
+    }
     else { ctl='<input type="'+(f.type||"text")+'" id="'+id+'" value="'+esc(f.value==null?"":f.value)+'"'+(f.type==="number"?' step="1" min="0" class="num"':'')+'>'; }
     return '<div class="fld"><label for="'+id+'">'+esc(f.label)+'</label>'+ctl+(f.hint?'<span class="hint">'+esc(f.hint)+'</span>':'')+'</div>';
   }).join("");
@@ -1026,7 +1036,8 @@ function editContributor(c){
     {k:"name",label:"Contributor name",value:c.name||"",hint:"Telugu script is fine"},
     {k:"promised",label:"Promised (₹)",type:"number",value:c.promised==null?"":c.promised,hint:"What they committed to give. Leave blank if they paid in full straight away."},
     {k:"amount",label:"Received so far (₹)",type:"number",value:c.amount==null?"":c.amount,hint:"Leave blank until the chanda comes in"},
-    {k:"collectedBy",label:"Collected by",value:c.collectedBy||"",hint:"Which team member received the money"},
+    {k:"collectedBy",label:"Collected by",value:c.collectedBy||"",list:doc.collectors||[],
+     hint:"Which team member received the money"},
     {k:"date",label:"Date received",type:"date",value:c.date||""},
     {k:"phone",label:"Phone",value:c.phone||"",hint:"10 digits, or with country code"},
     {k:"prevAmount",label:"Last year's amount (₹)",type:"number",value:c.prevAmount==null?"":c.prevAmount},
@@ -1181,6 +1192,158 @@ function putFile(path, content, message){
     });
 }
 
+/* ---------- handover between collectors and the organiser ----------
+   Only one device publishes, so nobody can overwrite anyone. Collectors
+   record on their own phones and send an encrypted patch of just the rows
+   they touched; the organiser reviews it and merges it in. */
+function changedRows(localArr, baseArr){
+  var baseById={};
+  (baseArr||[]).forEach(function(r){ baseById[r.id]=JSON.stringify(r); });
+  return (localArr||[]).filter(function(r){
+    return baseById[r.id]===undefined || baseById[r.id]!==JSON.stringify(r);
+  }).map(function(r){ return JSON.parse(JSON.stringify(r)); });
+}
+function computePatch(){
+  var y=String(ui.year);
+  var base=(BASE && BASE.years && BASE.years[y]) ? BASE.years[y] : {contributors:[],expenses:[]};
+  var here=doc.years[y];
+  return { v:1, year: ui.year, at: nowISO(),
+           from: (cfg.device||""),
+           contributors: changedRows(here.contributors, base.contributors),
+           expenses: changedRows(here.expenses, base.expenses) };
+}
+function shareEntries(){
+  var patch=computePatch();
+  var n=patch.contributors.length+patch.expenses.length;
+  if(!n){
+    // everything on this device is already in the published register
+    if(dirty){ dirty=false; try{ localStorage.removeItem(LS_KEY); }catch(e){} renderDirty(); }
+    toast("Nothing new on this device — everything here is already published.");
+    return;
+  }
+  encryptPayload(patch, CODE).then(function(enc){
+    var text=JSON.stringify(enc);
+    var name="chanda-entries-"+(cfg.device?cfg.device.replace(/[^A-Za-z0-9]+/g,"-")+"-":"")+ui.year+".json";
+    openSheet("Send "+n+(n===1?" entry":" entries"),[],function(){},null,{
+      saveLabel:"Copy to clipboard",
+      intro:"These are the "+n+" "+(n===1?"entry":"entries")+" you have recorded on this device for "+ui.year+
+            ". Send the file (or the copied text) to whoever publishes the register. It is encrypted with the "+
+            "access code, so it is safe to send over WhatsApp."
+    });
+    var b=$("sheet-body");
+    var dl=document.createElement("button");
+    dl.className="btn sec"; dl.type="button"; dl.textContent="Download the file";
+    dl.style.marginTop="4px";
+    dl.addEventListener("click",function(){
+      downloadBlob(new Blob([text],{type:"application/json"}), name, "application/json");
+      toast("Saved as "+name);
+    });
+    b.appendChild(dl);
+    var ta=document.createElement("textarea");
+    ta.id="patch-text"; ta.readOnly=true; ta.value=text;
+    ta.style.marginTop="10px"; ta.style.minHeight="90px"; ta.style.fontSize="11px";
+    b.appendChild(ta);
+    sheetCtx.onSave=function(){
+      ta.select();
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ toast("Copied — paste it to the organiser."); },
+          function(){ toast("Could not copy. Select the text and copy it by hand."); });
+      } else { try{ document.execCommand("copy"); toast("Copied."); }catch(e){ toast("Select the text and copy it by hand."); } }
+    };
+  });
+}
+
+function openImport(){
+  openSheet("Import entries from a collector",[],function(){ applyImport(); },null,{
+    saveLabel:"Review entries",
+    intro:"Paste the text a collector sent you, or choose the file they shared. Nothing is changed until you have seen what it contains."
+  });
+  var b=$("sheet-body");
+  var f=document.createElement("input");
+  f.type="file"; f.accept=".json,application/json"; f.id="patch-file"; f.style.marginTop="4px";
+  f.addEventListener("change",function(){
+    var file=this.files && this.files[0]; if(!file) return;
+    var fr=new FileReader();
+    fr.onload=function(){ $("patch-in").value=fr.result; toast("File loaded — now tap Review entries."); };
+    fr.readAsText(file);
+  });
+  b.appendChild(f);
+  var ta=document.createElement("textarea");
+  ta.id="patch-in"; ta.placeholder="…or paste the text here";
+  ta.style.marginTop="10px"; ta.style.minHeight="110px"; ta.style.fontSize="11px";
+  b.appendChild(ta);
+}
+
+function applyImport(){
+  var raw=($("patch-in")||{}).value;
+  raw=(raw||"").trim();
+  if(!raw){ toast("Nothing to import."); return; }
+  var bundle;
+  try{ bundle=JSON.parse(raw); }catch(e){ toast("That does not look like a collector's file."); return; }
+  decryptBundle(bundle, CODE).then(function(patch){
+    if(!patch || !patch.year){ toast("That file is not a set of entries."); return; }
+    reviewImport(patch);
+  }).catch(function(){
+    toast("Could not open that file — it was encrypted with a different access code.");
+  });
+}
+
+function reviewImport(patch){
+  var y=String(patch.year);
+  if(!doc.years[y]){ toast("This register has no "+y+" year to import into."); return; }
+  var here=doc.years[y];
+  function describe(list, arr, kind){
+    return (list||[]).map(function(r){
+      var cur=(arr||[]).filter(function(x){ return x.id===r.id; })[0];
+      var label = kind==="c" ? (r.name||"—") : ((r.category||"—")+" — "+(r.item||""));
+      var to = money(r.amount);
+      var from = cur ? money(cur.amount) : null;
+      var verb = !cur ? "new" : (String(cur.amount)===String(r.amount) ? "no change" : "changed");
+      return {label:label, from:from, to:to, verb:verb,
+              by:(kind==="c" ? (r.collectedBy||"") : (r.paidBy||"")), date:(r.date||"")};
+    });
+  }
+  var rows=describe(patch.contributors, here.contributors, "c")
+            .concat(describe(patch.expenses, here.expenses, "e"));
+  if(!rows.length){ toast("That file has no entries in it."); return; }
+
+  var html=rows.map(function(r){
+    var right = r.verb==="new" ? '<strong>'+esc(r.to)+'</strong> <span style="color:var(--muted)">new</span>'
+      : r.verb==="no change" ? '<span style="color:var(--muted)">'+esc(r.to)+' — already the same</span>'
+      : '<span style="color:var(--muted)">'+esc(r.from)+' &rarr; </span><strong>'+esc(r.to)+'</strong>';
+    var meta=[r.by?("by "+esc(r.by)):"", r.date?fmtDate(r.date):""].filter(Boolean).join(" &middot; ");
+    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">'+
+      '<div style="min-width:0"><div class="nm">'+esc(r.label)+'</div>'+
+      (meta?'<div class="meta">'+meta+'</div>':'')+'</div>'+
+      '<div class="num" style="white-space:nowrap;text-align:right">'+right+'</div></div>';
+  }).join("");
+
+  openSheet("Review "+rows.length+(rows.length===1?" entry":" entries"),[],function(){
+    var appliedC=mergeInto(here.contributors, patch.contributors);
+    var appliedE=mergeInto(here.expenses, patch.expenses);
+    markDirty(); renderAll();
+    toast("Merged "+(appliedC+appliedE)+" "+((appliedC+appliedE)===1?"entry":"entries")+". Publish to make it live.");
+  },null,{
+    saveLabel:"Merge into the register",
+    intro:(patch.from? "From "+patch.from+". " : "")+"Recorded for "+patch.year+
+          ". Check these before merging — the values on the right replace what is in the register."
+  });
+  var b=$("sheet-body");
+  var box=document.createElement("div"); box.innerHTML=html; b.appendChild(box);
+}
+
+function mergeInto(target, incoming){
+  var n=0;
+  (incoming||[]).forEach(function(r){
+    var i=-1;
+    for(var k=0;k<target.length;k++){ if(target[k].id===r.id){ i=k; break; } }
+    if(i>=0){ target[i]=JSON.parse(JSON.stringify(r)); }
+    else { var copy=JSON.parse(JSON.stringify(r)); copy.sno=nextSno(target); target.push(copy); }
+    n++;
+  });
+  return n;
+}
+
 /* Summary for people outside the team: money in, money out, nothing personal.
    No names, no phone numbers, no individual amounts. */
 function publicSummary(){
@@ -1234,6 +1397,10 @@ function openSettings(){
     : "Tap again to remove "+ui.year;
   openSheet("Settings",[
     {k:"festivalName",label:"Register name",value:doc.festivalName||""},
+    {k:"device",label:"This phone belongs to",value:cfg.device||"",
+     hint:"Your name. The organiser sees it when you send entries."},
+    {k:"collectors",label:"Collectors",value:(doc.collectors||[]).join(", "),
+     hint:"Comma separated. These appear as suggestions in the \u201cCollected by\u201d box."},
     {k:"publicCode",label:"Public view code",value:doc.publicCode||"",
      hint:"Share this with people outside the team. It opens a view of totals and expenses only — no names, no phone numbers, no individual amounts. Leave blank to stop updating the public page."},
     {k:"owner",label:"GitHub username",value:cfg.owner||"",hint:"Needed only to publish changes for everyone"},
@@ -1253,8 +1420,11 @@ function openSettings(){
       } else { doc.publicCode=v.publicCode; markDirty(); }
     }
     cfg.owner=v.owner; cfg.repo=v.repo; cfg.branch=v.branch||"main";
-    cfg.path=v.path||DATA_FILE; cfg.token=v.token;
+    cfg.path=v.path||DATA_FILE; cfg.token=v.token; cfg.device=v.device;
     saveCfg(); renderDirty();
+    $("btn-import").hidden = !cfg.token;
+    var names=(v.collectors||"").split(",").map(function(x){return x.trim();}).filter(Boolean);
+    if(JSON.stringify(names)!==JSON.stringify(doc.collectors||[])){ doc.collectors=names; markDirty(); }
     toast(cfg.token?"Settings saved. Publishing is enabled on this device.":"Settings saved.");
   }, yrs.length>1?function(){ removeYear(ui.year); }:null,
      {deleteLabel:"Remove "+ui.year+" from this register", deleteArmedLabel:armed,
@@ -1300,6 +1470,8 @@ $("e-add").addEventListener("click",function(){ editExpense(null); });
 $("c-export").addEventListener("click",exportWorkbook);
 $("e-export").addEventListener("click",exportWorkbook);
 $("btn-backup").addEventListener("click",downloadBackup);
+$("btn-share").addEventListener("click",shareEntries);
+$("btn-import").addEventListener("click",openImport);
 $("btn-publish").addEventListener("click",publish);
 $("btn-settings").addEventListener("click",openSettings);
 $("btn-newyear").addEventListener("click",startNextYear);
