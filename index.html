@@ -127,6 +127,8 @@ textarea{resize:vertical;min-height:62px}
 .btn.sec{background:var(--surface);color:var(--ink);border-color:var(--line-strong)}
 .btn.sec:hover{background:var(--surface-2);filter:none}
 .btn.danger{background:transparent;color:var(--danger);border-color:var(--line-strong)}
+.btn.danger-solid{background:var(--danger);color:#fff;border-color:transparent}
+.sheet-b .intro{margin:0;color:var(--ink-2);font-size:14px;line-height:1.55}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-ink);color:var(--accent-ink);font-weight:500}
@@ -718,11 +720,15 @@ function renderAll(){
    Slide-over editor
    ========================================================= */
 var sheetCtx=null;
-function openSheet(title,fields,onSave,onDelete){
+function openSheet(title,fields,onSave,onDelete,opts){
+  opts=opts||{};
   sheetCtx={fields:fields,onSave:onSave};
   $("sheet-title").textContent=title;
+  var saveBtn=$("sheet-save");
+  saveBtn.textContent=opts.saveLabel||"Save";
+  saveBtn.className="btn"+(opts.danger?" danger-solid":"");
   var b=$("sheet-body");
-  b.innerHTML=fields.map(function(f){
+  b.innerHTML=(opts.intro?'<p class="intro">'+esc(opts.intro)+'</p>':'')+fields.map(function(f){
     var id="f_"+f.k, ctl;
     if(f.type==="select"){
       ctl='<select id="'+id+'">'+(f.allowBlank?'<option value=""></option>':'')+
@@ -733,10 +739,11 @@ function openSheet(title,fields,onSave,onDelete){
   }).join("");
   if(onDelete){
     var d=document.createElement("button");
-    d.className="btn danger"; d.type="button"; d.textContent="Delete this entry"; d.style.marginTop="4px";
+    d.className="btn danger"; d.type="button";
+    d.textContent=opts.deleteLabel||"Delete this entry"; d.style.marginTop="4px";
     d.addEventListener("click",function(){
       if(d.dataset.armed){ closeSheet(); onDelete(); }
-      else { d.dataset.armed="1"; d.textContent="Tap again to confirm"; }
+      else { d.dataset.armed="1"; d.textContent=opts.deleteArmedLabel||"Tap again to confirm"; }
     });
     b.appendChild(d);
   }
@@ -821,7 +828,15 @@ function editExpense(e){
 function startNextYear(){
   var years=Object.keys(doc.years).map(Number);
   var ny=Math.max.apply(null,years)+1;
-  if(doc.years[String(ny)]){ ui.year=ny; renderYearSelect(); renderAll(); return; }
+  if(doc.years[String(ny)]){ ui.year=ny; doc.activeYear=ny; renderYearSelect(); renderAll(); return; }
+  openSheet("Start "+ny+"?",[],function(){ createYear(ny); },null,{
+    saveLabel:"Start "+ny,
+    intro:"This opens a fresh register for "+ny+". All "+contributors().length+
+      " names carry over with their amounts cleared, and this year's figures become the "+ny+
+      " benchmark. The "+ui.year+" register is not changed."
+  });
+}
+function createYear(ny){
   var src=year();
   doc.years[String(ny)]={
     target: sumOf(src.contributors,"amount")||null,
@@ -911,6 +926,11 @@ function publish(){
   });
 }
 function openSettings(){
+  var yrs=Object.keys(doc.years).map(Number);
+  var recorded=sumOf(contributors(),"amount")+sumOf(expenses(),"amount");
+  var armed = recorded>0
+    ? "Tap again — "+ui.year+" has "+money(recorded)+" recorded and cannot be recovered"
+    : "Tap again to remove "+ui.year;
   openSheet("Settings",[
     {k:"festivalName",label:"Register name",value:doc.festivalName||""},
     {k:"owner",label:"GitHub username",value:cfg.owner||"",hint:"Needed only to publish changes for everyone"},
@@ -928,7 +948,15 @@ function openSettings(){
     cfg.path=v.path||DATA_FILE; cfg.token=v.token;
     saveCfg(); renderDirty();
     toast(cfg.token?"Settings saved. Publishing is enabled on this device.":"Settings saved.");
-  });
+  }, yrs.length>1?function(){ removeYear(ui.year); }:null,
+     {deleteLabel:"Remove "+ui.year+" from this register", deleteArmedLabel:armed});
+}
+function removeYear(y){
+  delete doc.years[String(y)];
+  var rest=Object.keys(doc.years).map(Number).sort(function(a,b){ return b-a; });
+  ui.year=rest[0]; doc.activeYear=ui.year;
+  markDirty(); renderYearSelect(); renderAll();
+  toast(y+" removed. Publish to update it for everyone.");
 }
 
 /* =========================================================

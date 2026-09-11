@@ -14,8 +14,10 @@ no build step, and no external dependencies of any kind.
 - **Dashboard** — collected / spent / balance in hand, progress against target,
   largest contributions vs last year, expense breakdown, collection status.
 - **Multi-year** — "Start next year" carries every name forward into a new year
-  with amounts cleared and this year's figures set as the new benchmark. Switch
-  between years from the header.
+  with amounts cleared and this year's figures set as the new benchmark. It asks
+  for confirmation first. Switch between years from the header; a year created by
+  mistake can be removed from Settings (the last remaining year cannot be, and a
+  year holding recorded amounts warns you with the total before it goes).
 - **Excel export** — downloads a three-tab `.xlsx` (Collections, Expenses,
   Summary & Balance) matching the original workbook layout.
 
