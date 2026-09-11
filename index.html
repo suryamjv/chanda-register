@@ -360,6 +360,7 @@ footer p{margin:0}
       <h1 id="pub-name">Vinayaka Chavithi Chanda</h1>
       <span class="sub">Team Telugu Yuvatha Murikipudi &middot; 5th year</span>
     </div>
+    <div class="yearpick"><select id="pub-year-select" aria-label="Festival year"></select></div>
     <div class="rail-figs">
       <div class="rfig"><span class="k">Public view</span><span class="v" id="pub-year"></span></div>
     </div>
@@ -377,7 +378,7 @@ footer p{margin:0}
     </div>
     <div class="card chart" style="margin-top:20px">
       <h3>Where the money went</h3>
-      <p class="cap">Every rupee spent, by head</p>
+      <p class="cap">Every rupee spent, grouped by head</p>
       <div id="pub-chart"></div>
     </div>
     <div class="card chart" style="margin-top:14px">
@@ -666,30 +667,51 @@ $("gate-form").addEventListener("submit", function(ev){
   });
 });
 
+var PUB=null;
 function startPublic(sum){
+  // a v1 file carried a single year; wrap it so the rest of this is uniform
+  if(!sum.years){
+    var one={}; one[String(sum.year)]=sum;
+    sum={v:2, festivalName:sum.festivalName, activeYear:sum.year, updatedAt:sum.updatedAt, years:one};
+  }
+  PUB=sum;
   $("gate").hidden=true; $("pub").hidden=false;
   var name=sum.festivalName||"Chanda Register";
   document.title=name; $("pub-name").textContent=name;
-  $("pub-year").textContent=sum.year||"";
-  var coll=num(sum.collected)||0, exp=num(sum.spent)||0;
-  var bal=(sum.balance==null? coll-exp : num(sum.balance))||0;
+  var years=Object.keys(sum.years).map(Number).sort(function(a,b){ return b-a; });
+  var sel=$("pub-year-select");
+  var active = sum.activeYear && sum.years[String(sum.activeYear)] ? Number(sum.activeYear) : years[0];
+  sel.innerHTML = years.map(function(y){
+    return '<option value="'+y+'"'+(y===active?" selected":"")+'>'+y+'</option>'; }).join("");
+  sel.hidden = years.length<2;
+  sel.onchange = function(){ renderPublicYear(Number(this.value)); };
+  renderPublicYear(active);
+}
+function renderPublicYear(y){
+  var sum=PUB, data=sum.years[String(y)]||{};
+  $("pub-year").textContent=y;
+  var coll=num(data.collected)||0, exp=num(data.spent)||0;
+  var bal=(data.balance==null? coll-exp : num(data.balance))||0;
   $("pub-coll").textContent=money(coll);
   $("pub-exp").textContent=money(exp);
   $("pub-bal").textContent=money(bal);
-  $("pub-coll-sub").textContent = sum.contributorCount
-    ? "from "+(sum.paidCount||0)+" of "+sum.contributorCount+" names on the register" : "";
-  var list=(sum.expenses||[]);
+  $("pub-coll-sub").textContent = data.contributorCount
+    ? "from "+(data.paidCount||0)+" of "+data.contributorCount+" names on the register" : "";
+  var list=(data.expenses||[]);
   $("pub-exp-sub").textContent="across "+list.length+(list.length===1?" head":" heads");
 
-  var target=num(sum.target)||0;
+  var target=num(data.target)||0;
   var pct = target>0 ? Math.min(100, Math.round(coll/target*100)) : 0;
-  $("pub-prog-fill").style.width=pct+"%";
-  $("pub-prog-pct").textContent = target>0 ? pct+"% of "+money(target) : "";
-  $("pub-prog-label").textContent = target>0
-    ? (coll>=target ? "Target reached" : money(Math.max(0,target-coll))+" still to collect")
-    : "Collected so far";
+  var card=$("pub-prog-fill").closest(".progwrap");
+  if(target>0){
+    card.hidden=false;
+    $("pub-prog-fill").style.width=pct+"%";
+    $("pub-prog-pct").textContent=pct+"% of "+money(target);
+    $("pub-prog-label").textContent = coll>=target
+      ? "Target reached" : money(Math.max(0,target-coll))+" still to collect";
+  } else { card.hidden=true; }
 
-  drawExpenseBars("pub-chart", list.map(function(e){ return {name:e.category||"—", v:num(e.amount)||0}; }));
+  drawExpenseBars("pub-chart", byHead(list));
   $("pub-exp-body").innerHTML = list.slice().sort(function(a,b){ return (num(b.amount)||0)-(num(a.amount)||0); })
     .map(function(e){
       return '<tr><td><span class="nm">'+esc(e.category||"—")+'</span></td>'+
@@ -700,7 +722,7 @@ function startPublic(sum){
   var when = sum.updatedAt ? new Date(sum.updatedAt).toLocaleString("en-IN") : "";
   $("pub-note").textContent = "Public summary — totals and expenses only. Contributor names and individual "+
     "amounts are not part of this view." + (when? " Last updated "+when+"." : "");
-  $("pub-foot").textContent = (sum.contributorCount||0)+" contributors · "+list.length+" expense heads · "+(sum.year||"")+" register";
+  $("pub-foot").textContent = (data.contributorCount||0)+" contributors · "+list.length+" expense heads · "+y+" register";
 }
 
 function startApp(){
@@ -734,10 +756,12 @@ function renderHeadline(){
   var prevTotal=sumOf(contributors(),"prevAmount");
   var target=num(year().target); if(target===null) target=prevTotal||0;
   var pct = target>0 ? Math.min(100, Math.round(coll/target*100)) : 0;
+  var hasTarget = target>0;
+  document.querySelector("#panel-dash .track").hidden = !hasTarget;
   $("prog-fill").style.width=pct+"%";
-  $("prog-pct").textContent=pct+"% of "+money(target);
-  $("prog-label").textContent = (target>0 && coll>=target) ? "Target reached"
-    : money(Math.max(0,target-coll))+" still to collect";
+  $("prog-pct").textContent = hasTarget ? pct+"% of "+money(target) : "";
+  $("prog-label").textContent = !hasTarget ? ("No target set for "+ui.year)
+    : (coll>=target ? "Target reached" : money(Math.max(0,target-coll))+" still to collect");
   var ti=$("target-input"); if(document.activeElement!==ti) ti.value=target||"";
   $("target-hint").textContent = (num(year().target)===null && prevTotal) ? "(defaulting to last year's "+money(prevTotal)+")" : "";
 }
@@ -771,9 +795,17 @@ function chartTop(){
   });
   host.innerHTML=s.join("")+'</svg>';
 }
-function chartExpenses(){
-  drawExpenseBars("chart2", expenses().map(function(e){ return {name:e.category||"—",v:num(e.amount)||0}; }));
+function byHead(rows){
+  var order=[], map={};
+  rows.forEach(function(r){
+    var k=r.category||"—", v=num(r.amount)||0;
+    if(!v) return;
+    if(map[k]===undefined){ map[k]=0; order.push(k); }
+    map[k]+=v;
+  });
+  return order.map(function(k){ return {name:k, v:map[k]}; });
 }
+function chartExpenses(){ drawExpenseBars("chart2", byHead(expenses())); }
 function drawExpenseBars(hostId, all){
   var host=$(hostId);
   var rows=all.filter(function(r){return r.v>0;}).sort(function(a,b){return b.v-a.v;});
@@ -1125,17 +1157,21 @@ function putFile(path, content, message){
 /* Summary for people outside the team: money in, money out, nothing personal.
    No names, no phone numbers, no individual amounts. */
 function publicSummary(){
-  var cs=contributors(), es=expenses();
-  var coll=sumOf(cs,"amount"), exp=sumOf(es,"amount");
-  var target=num(year().target); if(target===null) target=sumOf(cs,"prevAmount")||0;
-  return {
-    v:1, festivalName: doc.festivalName||"Chanda Register", year: ui.year, updatedAt: nowISO(),
-    collected: coll, spent: exp, balance: coll-exp, target: target,
-    contributorCount: cs.length,
-    paidCount: cs.filter(function(c){ var st=paidState(c); return st==="paid"||st==="partial"; }).length,
-    expenses: es.filter(function(e){ return num(e.amount); })
-                .map(function(e){ return {category:e.category, item:e.item||"", amount:num(e.amount)}; })
-  };
+  var out={ v:2, festivalName: doc.festivalName||"Chanda Register",
+            activeYear: ui.year, updatedAt: nowISO(), years:{} };
+  Object.keys(doc.years).forEach(function(y){
+    var yr=doc.years[y], cs=yr.contributors||[], es=yr.expenses||[];
+    var coll=sumOf(cs,"amount"), exp=sumOf(es,"amount");
+    var target=num(yr.target); if(target===null) target=sumOf(cs,"prevAmount")||0;
+    out.years[y]={
+      collected: coll, spent: exp, balance: coll-exp, target: target,
+      contributorCount: cs.length,
+      paidCount: cs.filter(function(c){ var st=paidState(c); return st==="paid"||st==="partial"; }).length,
+      expenses: es.filter(function(e){ return num(e.amount); })
+                  .map(function(e){ return {category:e.category, item:e.item||"", amount:num(e.amount)}; })
+    };
+  });
+  return out;
 }
 
 function publish(){
