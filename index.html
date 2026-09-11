@@ -203,6 +203,31 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .rowbtn{background:none;border:1px solid var(--line-strong);border-radius:7px;padding:4px 9px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .rowbtn:hover{background:var(--surface-2);color:var(--ink)}
 
+/* On a phone a wide table means dragging sideways to read one row.
+   Below 720px each row becomes a card with every field on screen. */
+@media (max-width:720px){
+  .tablewrap{border:0;background:transparent;box-shadow:none;overflow:visible}
+  table{min-width:0;width:100%;display:block}
+  thead{display:none}
+  tbody,tbody tr,tbody td{display:block;width:auto}
+  tbody tr{position:relative;overflow:hidden;background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+    margin-bottom:10px;padding:13px 14px 13px 17px}
+  tbody tr:hover{background:var(--surface)}
+  tbody td{border:0;padding:1px 0;max-width:none!important}
+  tbody td:empty{display:none}
+  td.stripe{position:absolute;left:0;top:0;bottom:0;width:4px;height:auto}
+  td.sno{position:absolute;right:13px;top:12px;font-size:11.5px}
+  td.amt{text-align:left}
+  tbody td[data-l]::before{content:attr(data-l);display:block;margin-top:8px;
+    font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  tbody td.amt strong{font-size:17px}
+  tbody td.st{margin-top:9px}
+  tbody td:last-child{margin-top:11px}
+  tbody td:last-child .rowbtn{width:100%;padding:8px}
+  .delta,.meta{display:block}
+}
+
 .scrim{position:fixed;inset:0;background:rgba(25,15,12,.44);z-index:60;display:flex;justify-content:flex-end}
 .sheet{background:var(--surface);width:min(460px,100%);height:100%;overflow-y:auto;box-shadow:-8px 0 30px rgba(0,0,0,.2);display:flex;flex-direction:column}
 .sheet-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;background:var(--surface);z-index:2}
@@ -887,7 +912,9 @@ function renderContributors(){
       extra+='<span class="delta '+(diff>0?"up":diff<0?"down":"")+'">'+(diff>0?"+":"")+money(diff)+' vs last year</span>';
     }
     if(c.collectedBy || c.date){
-      extra+='<span class="meta">'+[esc(c.collectedBy||""),fmtDate(c.date)].filter(Boolean).join(" &middot; ")+'</span>';
+      var who = c.collectedBy ? "Collected by "+esc(c.collectedBy) : "Received";
+      var when = fmtDate(c.date);
+      extra+='<span class="meta">'+who+(when? " &middot; "+when : "")+'</span>';
     }
     return '<tr data-id="'+esc(c.id)+'">'+
       '<td class="stripe" style="background:'+stripe+'"></td>'+
@@ -895,10 +922,10 @@ function renderContributors(){
       '<td><span class="nm">'+esc(c.name)+'</span>'+
         (c.prevName?'<small>last year: '+esc(c.prevName)+'</small>':'')+
         phoneLinks(c.phone)+'</td>'+
-      '<td class="amt num"><strong>'+money(c.amount)+'</strong>'+extra+'</td>'+
-      '<td class="amt num" style="color:var(--muted)">'+money(c.prevAmount)+'</td>'+
-      '<td>'+pill+(c.tag?'<span class="sub2">'+esc(c.tag)+'</span>':'')+'</td>'+
-      '<td style="max-width:250px;color:var(--ink-2);font-size:13px">'+esc(c.notes||"")+'</td>'+
+      '<td class="amt num" data-l="This year"><strong>'+money(c.amount)+'</strong>'+extra+'</td>'+
+      '<td class="amt num" data-l="Last year" style="color:var(--muted)">'+money(c.prevAmount)+'</td>'+
+      '<td class="st">'+pill+(c.tag?'<span class="sub2">'+esc(c.tag)+'</span>':'')+'</td>'+
+      '<td class="nt" data-l="Notes" style="max-width:250px;color:var(--ink-2);font-size:13px">'+esc(c.notes||"")+'</td>'+
       '<td><button class="rowbtn" data-edit="1" type="button">Edit</button></td></tr>';
   }).join("");
 }
@@ -917,9 +944,9 @@ function renderExpenses(){
       '<td><span class="nm">'+esc(e.category)+'</span>'+(e.date?'<small>'+esc(e.date)+'</small>':'')+'</td>'+
       '<td style="max-width:290px;color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+
         (e.notes?'<span class="sub2">'+esc(e.notes)+'</span>':'')+'</td>'+
-      '<td class="amt num"><strong>'+money(e.amount)+'</strong></td>'+
-      '<td style="font-size:13.5px">'+esc(e.paidBy||"—")+'</td>'+
-      '<td style="font-size:13px;color:var(--muted)">'+esc(e.mode||"")+'</td>'+
+      '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td>'+
+      '<td data-l="Paid by" style="font-size:13.5px">'+esc(e.paidBy||"—")+'</td>'+
+      '<td data-l="Mode" style="font-size:13px;color:var(--muted)">'+esc(e.mode||"")+'</td>'+
       '<td><button class="rowbtn" data-edit="1" type="button">Edit</button></td></tr>';
   }).join("");
 }
