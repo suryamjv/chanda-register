@@ -203,6 +203,41 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .rowbtn{background:none;border:1px solid var(--line-strong);border-radius:7px;padding:4px 9px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .rowbtn:hover{background:var(--surface-2);color:var(--ink)}
 .plain-wrap{box-shadow:none;border:0;background:transparent}
+/* ---- showcase: photo strip under the header, video rail on the right ---- */
+.strip{overflow:hidden;background:var(--surface-2);border-bottom:1px solid var(--line);
+  padding:10px 0;position:relative}
+.strip .striptrack{display:flex;gap:10px;width:max-content;animation:slide 60s linear infinite}
+.strip:hover .striptrack,.strip:focus-within .striptrack{animation-play-state:paused}
+@keyframes slide{ from{transform:translateX(-50%)} to{transform:translateX(0)} }
+.strip figure{margin:0;flex:0 0 auto;width:210px;height:140px;border-radius:8px;overflow:hidden;
+  border:1px solid var(--line);background:var(--surface);cursor:pointer;position:relative}
+.strip img{width:100%;height:100%;object-fit:cover;display:block}
+.strip figcaption{position:absolute;left:0;right:0;bottom:0;padding:14px 8px 6px;font-size:11px;color:#fff;
+  background:linear-gradient(transparent,rgba(0,0,0,.7));line-height:1.3}
+@media (prefers-reduced-motion:reduce), (hover:none){
+  .strip{overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .strip .striptrack{animation:none;width:max-content}
+  .strip figure{scroll-snap-align:start}
+}
+.showwrap{display:block}
+@media (min-width:980px){
+  .showwrap{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:18px;align-items:start}
+  .reelrail{position:sticky;top:16px;display:flex;flex-direction:column;gap:12px}
+}
+.reelrail{margin-top:20px}
+@media (min-width:980px){ .reelrail{margin-top:0} }
+.reel{position:relative;border-radius:12px;overflow:hidden;background:#0f1218;border:1px solid var(--line);
+  aspect-ratio:9/16}
+@media (max-width:979px){ .reelrail .reel ~ .reel{display:none} .reel{max-width:260px;margin:0 auto} }
+.reel iframe,.reel video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;display:block}
+.reel .rlabel{position:absolute;left:0;right:0;bottom:0;padding:16px 9px 7px;font-size:11.5px;color:#f0e6d2;
+  background:linear-gradient(transparent,rgba(0,0,0,.78));line-height:1.35;pointer-events:none;z-index:2}
+.reel .rlink{position:absolute;inset:0;z-index:3}
+.reel.card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(150deg,#1d2430,#12151c);text-decoration:none;padding:12px;text-align:center}
+.reel .host{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8e98a9}
+.reel .cap{font-size:12px;color:#e6dcc6;line-height:1.35}
+.railhead{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 -4px}
 .gal{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:4px}
 .gal figure{margin:0;position:relative;border-radius:10px;overflow:hidden;background:var(--surface-2);
   border:1px solid var(--line);aspect-ratio:4/3;cursor:pointer}
@@ -407,7 +442,9 @@ footer p{margin:0}
       <div class="upbar">
         <button class="btn" id="m-add" type="button">Add photos</button>
         <button class="btn sec" id="m-link" type="button">Add a video link</button>
+        <button class="btn sec" id="m-clip" type="button">Upload a short clip</button>
         <input type="file" id="m-file" accept="image/*" multiple hidden>
+        <input type="file" id="m-vfile" accept="video/mp4,video/webm" hidden>
         <span class="upnote" id="m-note"></span>
       </div>
       <div class="card chart">
@@ -436,8 +473,11 @@ footer p{margin:0}
       <div class="rfig"><span class="k">Public view</span><span class="v" id="pub-year"></span></div>
     </div>
   </div></div>
+  <div class="strip" id="pub-strip" hidden><div class="striptrack" id="pub-track"></div></div>
   <main>
     <div class="banner pub-note" id="pub-note"></div>
+    <div class="showwrap">
+    <div>
     <div class="grid3">
       <div class="card tile lead"><span class="k">Collected</span><span class="v" id="pub-coll">₹0</span><span class="d" id="pub-coll-sub"></span></div>
       <div class="card tile spend"><span class="k">Spent</span><span class="v" id="pub-exp">₹0</span><span class="d" id="pub-exp-sub"></span></div>
@@ -466,6 +506,9 @@ footer p{margin:0}
           <tbody id="pub-exp-body"></tbody>
         </table>
       </div>
+    </div>
+    </div>
+    <aside class="reelrail" id="pub-rail" hidden></aside>
     </div>
   </main>
   <footer>
@@ -804,6 +847,7 @@ function renderPublicYear(y){
         '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
     }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
 
+  renderStrip(y); renderReels(y);
   var shown=renderGallery("pub-gal", y, false);
   $("pub-gal-card").hidden = !shown;
   if(shown) $("pub-gal-cap").textContent = shown+" photo"+(shown===1?"":"s")+" and video"+
@@ -1266,6 +1310,11 @@ function loadMedia(){
 function mediaFor(y){
   return (MEDIA.items||[]).filter(function(m){ return String(m.year)===String(y); });
 }
+function ytId(url){
+  var u=String(url||"");
+  var m=u.match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : "";
+}
 function videoHost(url){
   var u=String(url||"").toLowerCase();
   if(/youtu\.be|youtube\./.test(u)) return "YouTube";
@@ -1284,6 +1333,11 @@ function renderGallery(hostId, y, editable){
   }
   host.innerHTML='<div class="gal">'+items.map(function(m,i){
     var del = editable ? '<button class="del" data-del="'+esc(m.id)+'" title="Remove" type="button">&times;</button>' : '';
+    if(m.type==="clip" && m.file){
+      return '<figure>'+del+'<video src="'+esc(m.file)+'" muted loop playsinline autoplay '+
+        'style="width:100%;height:100%;object-fit:cover"></video>'+
+        (m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>';
+    }
     if(m.type==="video"){
       return '<figure>'+del+'<a class="vid" href="'+esc(m.url)+'" target="_blank" rel="noopener">'+
         '<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">'+
@@ -1313,8 +1367,83 @@ function renderGallery(hostId, y, editable){
   }
   return items.length;
 }
+var REEL_TIMERS=[];
+function stopReels(){ REEL_TIMERS.forEach(clearTimeout); REEL_TIMERS=[]; }
+
+/* Photos scroll under the header; the track is duplicated so the loop is seamless. */
+function renderStrip(y){
+  var photos=mediaFor(y).filter(function(m){ return m.type==="photo" && m.file; });
+  var strip=$("pub-strip"), track=$("pub-track");
+  if(!photos.length){ strip.hidden=true; track.innerHTML=""; return 0; }
+  strip.hidden=false;
+  var one=photos.map(function(m,i){
+    return '<figure data-si="'+i+'"><img src="'+esc(m.file)+'" alt="'+esc(m.caption||("Photo from "+y))+'" loading="lazy">'+
+      (m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>';
+  }).join("");
+  track.innerHTML=one+one;                       // two copies = continuous loop
+  track.style.animationDuration=Math.max(24, photos.length*9)+"s";
+  track.querySelectorAll("figure").forEach(function(f){
+    f.addEventListener("click",function(){ openLightbox(photos, Number(f.dataset.si)); });
+  });
+  return photos.length;
+}
+
+/* Videos stack on the right and cycle. Self-hosted clips advance when they end;
+   YouTube loops itself and we rotate to the next one on a timer. */
+function renderReels(y){
+  stopReels();
+  var vids=mediaFor(y).filter(function(m){ return m.type==="video" || m.type==="clip"; });
+  var rail=$("pub-rail");
+  if(!vids.length){ rail.hidden=true; rail.innerHTML=""; return 0; }
+  rail.hidden=false;
+  var slots=Math.min(2, vids.length);
+  var next=slots % vids.length;
+  rail.innerHTML='<p class="railhead">From '+y+'</p>'+
+    Array.apply(null,{length:slots}).map(function(_,i){ return '<div class="reel" id="reel-'+i+'"></div>'; }).join("");
+
+  function mount(slot, item){
+    var el=$("reel-"+slot); if(!el) return;
+    el.className="reel";
+    if(item.type==="clip" && item.file){
+      el.innerHTML='<video src="'+esc(item.file)+'" muted playsinline autoplay preload="metadata"></video>'+
+        (item.caption?'<div class="rlabel">'+esc(item.caption)+'</div>':'');
+      var v=el.querySelector("video");
+      v.addEventListener("ended",function(){ advance(slot); });
+      v.play().catch(function(){});
+      return;
+    }
+    var id=ytId(item.url);
+    if(id){
+      el.innerHTML='<iframe src="https://www.youtube.com/embed/'+encodeURIComponent(id)+
+        '?autoplay=1&mute=1&controls=0&loop=1&playlist='+encodeURIComponent(id)+
+        '&modestbranding=1&rel=0&playsinline=1" allow="autoplay; encrypted-media" '+
+        'referrerpolicy="strict-origin-when-cross-origin" title="'+esc(item.caption||"Festival video")+'"></iframe>'+
+        (item.caption?'<div class="rlabel">'+esc(item.caption)+'</div>':'')+
+        '<a class="rlink" href="'+esc(item.url)+'" target="_blank" rel="noopener" aria-label="Open this video"></a>';
+      if(vids.length>slots) REEL_TIMERS.push(setTimeout(function(){ advance(slot); }, 45000));
+      return;
+    }
+    // Instagram, Drive and the rest cannot autoplay — show a card that opens the post
+    el.className="reel card";
+    el.innerHTML='<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">'+
+      '<circle cx="17" cy="17" r="16" fill="none" stroke="#d2a43c" stroke-width="1.5"/>'+
+      '<path d="M13.5 10.5 L24 17 L13.5 23.5 Z" fill="#d2a43c"/></svg>'+
+      '<span class="host">'+esc(videoHost(item.url))+'</span>'+
+      (item.caption?'<span class="cap">'+esc(item.caption)+'</span>':'')+
+      '<a class="rlink" href="'+esc(item.url)+'" target="_blank" rel="noopener" aria-label="Open this video"></a>';
+    if(vids.length>slots) REEL_TIMERS.push(setTimeout(function(){ advance(slot); }, 12000));
+  }
+  function advance(slot){
+    if(vids.length<=slots){ mount(slot, vids[slot]); return; }
+    var item=vids[next % vids.length]; next=(next+1)%vids.length;
+    mount(slot, item);
+  }
+  for(var i=0;i<slots;i++) mount(i, vids[i]);
+  return vids.length;
+}
+
 function openLightbox(items, i){
-  var photos=items.filter(function(m){ return m.type!=="video"; });
+  var photos=items.filter(function(m){ return m.type==="photo"; });
   var idx=Math.max(0, photos.indexOf(items[i]));
   var box=document.createElement("div");
   box.className="lightbox";
@@ -1403,6 +1532,34 @@ function addPhotos(files){
     toast("Upload failed: "+err.message);
   });
 }
+var CLIP_MAX = 24*1024*1024;   // keep the repository and village phones happy
+function addClip(file){
+  if(!cfg.token){ toast("Add your GitHub token in Settings before uploading."); return; }
+  var note=$("m-note");
+  if(file.size>CLIP_MAX){
+    note.textContent="That clip is "+(file.size/1048576).toFixed(1)+" MB. Keep clips under 24 MB — trim it, or post it to YouTube and add the link instead.";
+    toast("Clip too large.");
+    return;
+  }
+  var ext=/\.webm$/i.test(file.name)?"webm":"mp4";
+  note.textContent="Uploading clip ("+(file.size/1048576).toFixed(1)+" MB)…";
+  blobToB64(file).then(function(b64){
+    var id=uid("m"), path="media/"+ui.year+"/"+id+"."+ext;
+    return fetch(ghUrl(path),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
+      message:"Add a clip to the "+ui.year+" gallery", content:b64, branch:cfg.branch||"main"
+    })}).then(function(r){
+      if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||("HTTP "+r.status)); });
+      MEDIA.items.push({id:id, year:ui.year, type:"clip", file:path, caption:"", addedAt:nowISO(), size:file.size});
+      MEDIA.updatedAt=nowISO();
+      return saveManifest("Add a clip to "+ui.year);
+    });
+  }).then(function(){
+    note.textContent="Clip uploaded. Live in about a minute.";
+    renderMedia(); toast("Clip added.");
+  }).catch(function(err){
+    note.textContent="Upload failed: "+err.message; toast("Upload failed.");
+  });
+}
 function addVideoLink(){
   if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
   openSheet("Add a video link",[
@@ -1441,7 +1598,7 @@ function renderMedia(){
   var n=renderGallery("m-gal", ui.year, true);
   $("m-note").textContent = cfg.token ? (n?n+" item"+(n===1?"":"s")+" in "+ui.year:"")
     : "Add your GitHub token in Settings to upload.";
-  $("m-add").disabled=!cfg.token; $("m-link").disabled=!cfg.token;
+  $("m-add").disabled=!cfg.token; $("m-link").disabled=!cfg.token; $("m-clip").disabled=!cfg.token;
 }
 
 /* ---------- handover between collectors and the organiser ----------
@@ -1713,6 +1870,8 @@ $("tab-media").addEventListener("click",function(){tabTo("media"); renderMedia()
 $("m-add").addEventListener("click",function(){ $("m-file").click(); });
 $("m-file").addEventListener("change",function(){ if(this.files.length){ addPhotos(this.files); this.value=""; } });
 $("m-link").addEventListener("click",addVideoLink);
+$("m-clip").addEventListener("click",function(){ $("m-vfile").click(); });
+$("m-vfile").addEventListener("change",function(){ if(this.files[0]) addClip(this.files[0]); this.value=""; });
 $("c-search").addEventListener("input",function(){ ui.cSearch=this.value; renderContributors(); });
 $("e-search").addEventListener("input",function(){ ui.eSearch=this.value; renderExpenses(); });
 $("c-filters").addEventListener("click",function(e){
