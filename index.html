@@ -284,6 +284,10 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .gal .vid .cap{font-size:12px;color:#e6dcc6;line-height:1.35}
 .gal .del{position:absolute;top:6px;right:6px;z-index:2;background:rgba(0,0,0,.62);color:#fff;border:0;
   border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;display:none}
+.gal .pen{position:absolute;top:6px;right:34px;z-index:2;background:rgba(0,0,0,.62);color:#fff;border:0;
+  border-radius:7px;width:24px;height:24px;line-height:1;cursor:pointer;display:none;font-size:13px}
+.gal figure:hover .pen{display:block}
+@media (hover:none){ .gal .pen{display:block} }
 .gal figure:hover .del{display:block}
 @media (hover:none){ .gal .del{display:block} }
 .lightbox{position:fixed;inset:0;z-index:120;background:rgba(8,7,6,.99);display:flex;align-items:center;
@@ -346,6 +350,21 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .idolyear{font-family:var(--mono,ui-monospace,monospace);font-size:17px;font-weight:600;
   letter-spacing:.06em;color:var(--ink)}
 .idolnote{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.4}
+.sponcard{margin-top:20px}
+.sponlist{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(215px,1fr))}
+.sponrow{display:flex;flex-direction:column;gap:2px;padding:11px 13px;border-radius:11px;
+  background:var(--surface-2,rgba(0,0,0,.03));border:1px solid var(--line)}
+.sponrow .n{font-size:14.5px;font-weight:500;color:var(--ink);line-height:1.3}
+.sponrow .w{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.sponrow .x{margin-left:auto;flex:0 0 auto}
+.sponedit{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.sponedit:last-child{border-bottom:0}
+.sponedit .n{font-size:14.5px;color:var(--ink)}
+.sponedit .w{font-size:12px;color:var(--muted)}
+.idolspon{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:5px;
+  font-size:13px;color:var(--ink-2);font-weight:500;text-align:center;line-height:1.35}
+.idolspon .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  font-weight:600}
 .idolzoom{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border:0;
   border-radius:9px;background:rgba(18,13,8,.62);color:#f4e3bd;font-size:15px;cursor:pointer;
   display:none;align-items:center;justify-content:center}
@@ -491,6 +510,7 @@ footer p{margin:0}
     <button class="tab" id="tab-dash" role="tab" aria-selected="true" aria-controls="panel-dash" type="button">Dashboard</button>
     <button class="tab" id="tab-coll" role="tab" aria-selected="false" aria-controls="panel-coll" type="button">Collections</button>
     <button class="tab" id="tab-exp" role="tab" aria-selected="false" aria-controls="panel-exp" type="button">Expenses</button>
+    <button class="tab" id="tab-lend" role="tab" aria-selected="false" aria-controls="panel-lend" type="button">Balance</button>
     <button class="tab" id="tab-media" role="tab" aria-selected="false" aria-controls="panel-media" type="button">Photos</button>
   </div></div>
 
@@ -593,6 +613,42 @@ footer p{margin:0}
       </tr></thead><tbody id="e-body"></tbody></table></div>
       <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
       <p class="empty" id="e-empty" hidden>No expenses match that search.</p>
+      <div class="card chart" style="margin-top:16px">
+        <div class="pubhead">
+          <div><h3>Sponsored in kind</h3>
+          <p class="cap">People who paid for something themselves &mdash; names only, no amounts, not counted in collections</p></div>
+          <button class="btn" id="s-add" type="button">Add a sponsor</button>
+        </div>
+        <div id="s-list" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-lend" role="tabpanel" aria-labelledby="tab-lend" hidden>
+      <div class="grid3">
+        <div class="card tile"><span class="k">Carried in from <span id="l-py"></span></span><span class="v" id="l-open">₹0</span><span class="d" id="l-open-sub"></span></div>
+        <div class="card tile spend"><span class="k">Out with holders</span><span class="v" id="l-out">₹0</span><span class="d" id="l-out-sub"></span></div>
+        <div class="card tile hand"><span class="k">Cash in hand</span><span class="v" id="l-hand">₹0</span><span class="d" id="l-hand-sub"></span></div>
+      </div>
+      <div class="card progwrap" style="margin-top:14px">
+        <div class="targetrow">
+          <span>Opening balance carried into <span id="l-y"></span>:</span><span>₹</span>
+          <input type="number" id="l-open-input" min="0" step="100" class="num" aria-label="Opening balance">
+          <button class="rowbtn" id="l-open-save" type="button">Set</button>
+          <span id="l-open-hint" class="hint"></span>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:14px">
+        <button class="btn" id="l-add" type="button">Give money to someone</button>
+      </div>
+      <div class="tablewrap"><table id="l-table"><thead><tr>
+        <th class="stripe plain"></th><th class="plain">#</th><th class="plain">Held by</th>
+        <th class="plain" style="text-align:right">Given</th><th class="plain" style="text-align:right">Agreed back</th>
+        <th class="plain" style="text-align:right">Returned</th><th class="plain">Status</th>
+        <th class="plain">Notes</th><th class="plain"></th>
+      </tr></thead><tbody id="l-body"></tbody></table></div>
+      <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
+      <p class="empty" id="l-empty" hidden>Nothing given out yet for this year.</p>
+      <p class="cap" style="margin-top:12px">This page is for the team only. None of it appears on the public page.</p>
     </section>
 
     <section class="panel" id="panel-media" role="tabpanel" aria-labelledby="tab-media" hidden>
@@ -669,6 +725,11 @@ footer p{margin:0}
         <span class="upnote" id="h-note"></span>
       </div>
       <div id="h-gal" style="margin-top:12px"></div>
+    </section>
+    <section class="card sponcard" id="pub-spon" hidden>
+      <h3>With thanks</h3>
+      <p class="cap" id="pub-spon-cap"></p>
+      <div id="pub-spon-list"></div>
     </section>
     <section class="card idolwall" id="pub-idols" hidden>
       <h3>Our Ganesh, year by year</h3>
@@ -1053,6 +1114,7 @@ function renderPublicYear(y){
 
   drawExpenseBars("pub-chart", byHead(list));
   ui.pubList=list; renderPubExpenses();
+  renderPublicSponsors(y);
 
   renderUpi("pub-upi", sum.upi);
   renderStrip(y);
@@ -1082,10 +1144,172 @@ function startApp(){
 /* =========================================================
    Headline + charts
    ========================================================= */
+/* =========================================================
+   Money left over: given to holders, returned with interest,
+   then carried into the next year. Team view only.
+   ========================================================= */
+function lending(){
+  var yr=year(); if(!yr.lending) yr.lending=[];
+  return yr.lending;
+}
+function opening(){ return num(year().opening)||0; }
+function lentOut(){       /* still with a holder */
+  return lending().filter(function(l){ return num(l.returned)===null; })
+                  .reduce(function(t,l){ return t+(num(l.amount)||0); },0);
+}
+function lentBack(){      /* what actually came back, interest included */
+  return lending().reduce(function(t,l){ return t+(num(l.returned)||0); },0);
+}
+function lentGiven(){     /* everything ever handed out this year */
+  return lending().reduce(function(t,l){ return t+(num(l.amount)||0); },0);
+}
+function interestEarned(){
+  return lending().filter(function(l){ return num(l.returned)!==null; })
+    .reduce(function(t,l){ return t+((num(l.returned)||0)-(num(l.amount)||0)); },0);
+}
+function cashInHand(){
+  return opening() + sumOf(contributors(),"amount") - sumOf(expenses(),"amount")
+         - lentGiven() + lentBack();
+}
+function lendState(l){
+  if(num(l.returned)!==null) return "back";
+  if(l.dueDate && l.dueDate < todayISO()) return "overdue";
+  return "out";
+}
+function todayISO(){
+  var d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function renderLending(){
+  var y=ui.year;
+  $("l-y").textContent=y; $("l-py").textContent=(y-1);
+  $("l-open").textContent=money(opening());
+  $("l-open-sub").textContent = opening()>0 ? "last year’s balance and interest" : "nothing carried in";
+  $("l-out").textContent=money(lentOut());
+  var outCount=lending().filter(function(l){ return num(l.returned)===null; }).length;
+  var due=lending().filter(function(l){ return lendState(l)==="overdue"; }).length;
+  $("l-out-sub").textContent = outCount
+    ? outCount+(outCount===1?" holder":" holders")+(due?" · "+due+" past the due date":"")
+    : "nothing out";
+  $("l-hand").textContent=money(cashInHand());
+  var ie=interestEarned();
+  $("l-hand-sub").textContent = ie ? (ie>0?"includes ":"after ")+money(Math.abs(ie))+
+    (ie>0?" interest received":" short on returns") : "opening + collected − spent − out";
+  if(document.activeElement!==$("l-open-input")) $("l-open-input").value = opening()||"";
+  $("l-open-hint").textContent = "Counted separately from chanda, so it never looks like a donation.";
+
+  var rows=lending().slice().sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
+  $("l-empty").hidden = rows.length>0;
+  $("l-body").innerHTML = rows.map(function(l){
+    var st=lendState(l);
+    var stripe = st==="back"?"var(--good)":st==="overdue"?"var(--wait)":"var(--part)";
+    var pill = st==="back"?'<span class="pill p-paid">Returned</span>'
+             : st==="overdue"?'<span class="pill p-pend">Overdue</span>'
+             : '<span class="pill p-part">With holder</span>';
+    var extra="";
+    if(st==="back"){
+      var d=(num(l.returned)||0)-(num(l.amount)||0);
+      extra='<span class="delta '+(d>0?"up":d<0?"down":"")+'">'+(d>0?"+":"")+money(d)+' interest</span>';
+    } else if(num(l.agreed)!==null){
+      extra='<span class="delta">'+money(l.agreed)+' agreed';
+      if(l.dueDate) extra+=' &middot; due '+esc(fmtDate(l.dueDate));
+      extra+='</span>';
+    }
+    if(l.given) extra+='<span class="meta">Given '+esc(fmtDate(l.given))+'</span>';
+    return '<tr data-id="'+esc(l.id)+'">'+
+      '<td class="stripe" style="background:'+stripe+'"></td>'+
+      '<td class="sno num">'+esc(l.sno==null?"":l.sno)+'</td>'+
+      '<td><span class="nm">'+esc(l.holder||"—")+'</span>'+phoneLinks(l.phone)+'</td>'+
+      '<td class="amt num" data-l="Given"><strong>'+money(l.amount)+'</strong>'+extra+'</td>'+
+      '<td class="amt num" data-l="Agreed back" style="color:var(--muted)">'+money(l.agreed)+'</td>'+
+      '<td class="amt num" data-l="Returned"><strong>'+money(l.returned)+'</strong>'+
+        (l.returnedDate?'<span class="meta">'+esc(fmtDate(l.returnedDate))+'</span>':'')+'</td>'+
+      '<td class="st">'+pill+'</td>'+
+      '<td class="nt" data-l="Notes" style="max-width:220px;color:var(--ink-2);font-size:13px">'+esc(l.notes||"")+'</td>'+
+      '<td><button class="rowbtn" data-edit="1" type="button">Edit</button></td></tr>';
+  }).join("");
+}
+function lendFields(l){
+  return [
+    {k:"holder",label:"Held by",value:l.holder||"",list:(doc.collectors||[]),
+     hint:"Who is keeping the money"},
+    {k:"phone",label:"Phone",value:l.phone||""},
+    {k:"amount",label:"Amount given",type:"number",value:l.amount==null?"":l.amount},
+    {k:"given",label:"Date given",type:"date",value:l.given||""},
+    {k:"agreed",label:"Agreed to return",type:"number",value:l.agreed==null?"":l.agreed,
+     hint:"The whole figure you agreed comes back, interest included"},
+    {k:"dueDate",label:"Due date",type:"date",value:l.dueDate||""},
+    {k:"returned",label:"Actually returned",type:"number",value:l.returned==null?"":l.returned,
+     hint:"Leave blank until the money is back in hand"},
+    {k:"returnedDate",label:"Date returned",type:"date",value:l.returnedDate||""},
+    {k:"notes",label:"Notes",type:"textarea",value:l.notes||""}
+  ];
+}
+function applyLend(l,v){
+  l.holder=v.holder; l.phone=v.phone; l.notes=v.notes;
+  l.amount=num(v.amount); l.agreed=num(v.agreed); l.returned=num(v.returned);
+  l.given=v.given||""; l.dueDate=v.dueDate||""; l.returnedDate=v.returnedDate||"";
+  if(l.returned!==null && !l.returnedDate) l.returnedDate=todayISO();
+}
+function editLending(l){
+  openSheet("Money with "+(l.holder||"someone"), lendFields(l), function(v){
+    if(!String(v.holder||"").trim()){ toast("Who is holding it?"); return false; }
+    if(num(v.amount)===null || num(v.amount)<=0){ toast("Enter the amount given."); return false; }
+    applyLend(l,v); markDirty(); renderAll();
+  }, function(){
+    var arr=lending(); var i=arr.indexOf(l);
+    if(i>=0){ arr.splice(i,1); arr.forEach(function(r,k){ r.sno=k+1; }); }
+    markDirty(); renderAll(); toast("Entry removed.");
+  }, {deleteLabel:"Remove this entry"});
+}
+function addLending(){
+  var arr=lending();
+  var free=cashInHand();
+  var l={id:uid("l"), sno:arr.length+1, holder:"", phone:"", amount:null, given:todayISO(),
+         agreed:null, dueDate:"", returned:null, returnedDate:"", notes:""};
+  openSheet("Give money to someone", lendFields(l), function(v){
+    if(!String(v.holder||"").trim()){ toast("Who is holding it?"); return false; }
+    if(num(v.amount)===null || num(v.amount)<=0){ toast("Enter the amount given."); return false; }
+    if(num(v.amount) > free){
+      toast("That is more than the "+money(free)+" in hand.");
+      return false;
+    }
+    applyLend(l,v); arr.push(l); markDirty(); renderAll();
+    toast(money(l.amount)+" recorded with "+l.holder+".");
+  },null,{saveLabel:"Record it",
+    intro:"Cash in hand right now is "+money(free)+". This does not move any money — it records where it went."});
+}
+function viewLending(l){
+  var st=lendState(l);
+  var pill = st==="back"?'<span class="pill p-paid">Returned</span>'
+           : st==="overdue"?'<span class="pill p-pend">Overdue</span>'
+           : '<span class="pill p-part">With holder</span>';
+  var d=(num(l.returned)||0)-(num(l.amount)||0);
+  var rows=[
+    ["Status", pill],
+    ["Given", '<strong>'+money(l.amount)+'</strong>'+(l.given?'<span class="sub">'+esc(fmtDate(l.given))+'</span>':'')],
+    (num(l.agreed)!==null?["Agreed back", money(l.agreed)+(l.dueDate?'<span class="sub">due '+esc(fmtDate(l.dueDate))+'</span>':'')]:null),
+    (num(l.returned)!==null?["Returned", '<strong>'+money(l.returned)+'</strong>'+
+       '<span class="sub">'+(d>0?"+":"")+money(d)+' interest'+(l.returnedDate?' · '+esc(fmtDate(l.returnedDate)):'')+'</span>']:null),
+    (l.phone?["Phone", '<div class="vphones">'+phoneLinks(l.phone)+'</div>']:null),
+    (l.notes?["Notes", esc(l.notes)]:null)
+  ];
+  openView(l.holder||"(no name)", (l.sno!=null?"No. "+esc(l.sno):""), rows,
+           function(){ editLending(l); });
+}
+
 function renderHeadline(){
   var coll=sumOf(contributors(),"amount"), exp=sumOf(expenses(),"amount"), bal=coll-exp;
   $("rf-coll").textContent=money(coll); $("rf-exp").textContent=money(exp); $("rf-bal").textContent=money(bal);
-  $("d-coll").textContent=money(coll);  $("d-exp").textContent=money(exp);  $("d-bal").textContent=money(bal);
+  $("d-coll").textContent=money(coll);  $("d-exp").textContent=money(exp);
+  $("d-bal").textContent=money(cashInHand());
+  var handSub=document.querySelector("#panel-dash .tile.hand .d");
+  var out=lentOut(), op=opening();
+  var bits=[];
+  if(op) bits.push(money(op)+" carried in from "+(ui.year-1));
+  if(out) bits.push(money(out)+" out with holders");
+  handSub.textContent = bits.length ? bits.join(" · ") : "Collections minus expenses";
+  $("rf-bal").textContent=money(cashInHand());
   var cs=contributors();
   var paid=cs.filter(function(c){var st=paidState(c);return st==="paid"||st==="partial";}).length;
   $("d-coll-sub").textContent="from "+paid+" of "+cs.length+" names on the register";
@@ -1296,6 +1520,7 @@ function renderAll(){
   $("lg-cur").textContent=y; $("lg-prev").textContent=py+" benchmark";
   $("chart1-cap").textContent="This year against the "+py+" ledger, top 12 by amount";
   $("foot").textContent = contributors().length+" contributors · "+expenses().length+" expense heads · "+y+" register";
+  renderLending(); renderSponsors();
   if(!$("panel-media").hidden) renderMedia();
 }
 
@@ -1433,12 +1658,19 @@ function startNextYear(){
     saveLabel:"Start "+ny,
     intro:"This opens a fresh register for "+ny+". All "+contributors().length+
       " names carry over with their amounts cleared, and this year's figures become the "+ny+
-      " benchmark. The "+ui.year+" register is not changed."
+      " benchmark. The "+ui.year+" register is not changed."+
+      (cashInHand()>0 ? " "+money(cashInHand())+" of cash in hand carries into "+ny+
+        " as an opening balance, counted separately from chanda." : "")+
+      (lentOut()>0 ? " Careful: "+money(lentOut())+" is still out with holders and is not counted."
+                   : "")
   });
 }
 function createYear(ny){
   var src=year();
+  var carry=cashInHand();
   doc.years[String(ny)]={
+    opening: carry>0 ? carry : null,
+    lending: [],
     target: sumOf(src.contributors,"amount")||null,
     contributors: src.contributors.slice()
       .sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); })
@@ -1451,7 +1683,8 @@ function createYear(ny){
   };
   doc.activeYear=ny; ui.year=ny;
   markDirty(); renderYearSelect(); renderAll();
-  toast(ny+" opened — every name carried over, amounts cleared.");
+  toast(ny+" opened — every name carried over, amounts cleared."+
+        (carry>0 ? " "+money(carry)+" carried in." : ""));
 }
 
 /* =========================================================
@@ -1565,7 +1798,8 @@ function renderGallery(hostId, y, editable){
     return 0;
   }
   host.innerHTML='<div class="gal">'+items.map(function(m,i){
-    var del = editable ? '<button class="del" data-del="'+esc(m.id)+'" title="Remove" type="button">&times;</button>' : '';
+    var del = editable ? '<button class="del" data-del="'+esc(m.id)+'" title="Remove" type="button">&times;</button>'+
+      '<button class="pen" data-pen="'+esc(m.id)+'" title="Edit caption" type="button">&#9998;</button>' : '';
     if(m.type==="clip" && m.file){
       return '<figure>'+del+'<video src="'+esc(m.file)+'" muted loop playsinline autoplay '+
         'style="width:100%;height:100%;object-fit:cover"></video>'+
@@ -1587,11 +1821,14 @@ function renderGallery(hostId, y, editable){
 
   host.querySelectorAll("figure[data-i]").forEach(function(f){
     f.addEventListener("click",function(e){
-      if(e.target.closest("[data-del]")) return;
+      if(e.target.closest("[data-del]")||e.target.closest("[data-pen]")) return;
       openLightbox(items, Number(f.dataset.i));
     });
   });
   if(editable){
+    host.querySelectorAll("[data-pen]").forEach(function(btn){
+      btn.addEventListener("click",function(e){ e.stopPropagation(); editMediaItem(btn.dataset.pen); });
+    });
     host.querySelectorAll("[data-del]").forEach(function(btn){
       btn.addEventListener("click",function(e){
         e.stopPropagation();
@@ -1728,6 +1965,111 @@ function renderHandler(keepNote){
   if(miss) $("h-thumbs").textContent="Make "+miss+" thumbnail"+(miss===1?"":"s");
 }
 
+function editMediaItem(id){
+  var m=(MEDIA.items||[]).filter(function(x){ return x.id===id; })[0];
+  if(!m) return;
+  var fields=[{k:"caption",label:"Caption",value:m.caption||""}];
+  if(m.type==="idol"){
+    fields.unshift({k:"sponsor",label:"Idol given by",value:m.sponsor||"",
+      hint:"The sponsor who bought the idol. Shown under the picture on the public page."});
+  }
+  openSheet(m.type==="idol"?"Idol details":"Caption", fields, function(v){
+    m.caption=String(v.caption||"").trim();
+    if(m.type==="idol") m.sponsor=String(v.sponsor||"").trim();
+    MEDIA.updatedAt=nowISO();
+    saveManifest("Update "+(m.type==="idol"?"idol details":"a caption")).then(function(){
+      renderMedia(); toast("Saved.");
+    }).catch(function(e){ toast("Could not save: "+e.message); });
+  });
+}
+
+/* ---------- sponsors: names only, no amounts, not part of collections ---------- */
+function sponsors(){
+  var yr=year(); if(!yr.sponsors) yr.sponsors=[];
+  return yr.sponsors;
+}
+function sponsorFields(sp){
+  var opts=EXPENSE_HEADS.slice();
+  if(opts.indexOf("Idol (విగ్రహం)")>=0) opts.unshift("Annadanam (Food)");
+  opts=opts.filter(function(v,i,a){ return a.indexOf(v)===i; });
+  return [
+    {k:"name",label:"Sponsor’s name",value:sp.name||""},
+    {k:"item",label:"What they gave",type:"select",options:opts,
+     value:sp.item||"Annadanam (Food)"},
+    {k:"notes",label:"Notes",value:sp.notes||"",hint:"Optional. No amount is recorded."}
+  ];
+}
+function editSponsor(sp){
+  openSheet("Sponsor", sponsorFields(sp), function(v){
+    if(!String(v.name||"").trim()){ toast("Enter the sponsor’s name."); return false; }
+    sp.name=v.name.trim(); sp.item=v.item; sp.notes=v.notes;
+    markDirty(); renderAll();
+  }, function(){
+    var arr=sponsors(), i=arr.indexOf(sp);
+    if(i>=0){ arr.splice(i,1); arr.forEach(function(r,k){ r.sno=k+1; }); }
+    markDirty(); renderAll(); toast("Sponsor removed.");
+  }, {deleteLabel:"Remove this sponsor"});
+}
+function addSponsor(){
+  var arr=sponsors();
+  var sp={id:uid("sp"), sno:arr.length+1, name:"", item:"Annadanam (Food)", notes:""};
+  openSheet("Add a sponsor", sponsorFields(sp), function(v){
+    if(!String(v.name||"").trim()){ toast("Enter the sponsor’s name."); return false; }
+    sp.name=v.name.trim(); sp.item=v.item; sp.notes=v.notes;
+    arr.push(sp); markDirty(); renderAll();
+    toast(sp.name+" added as a sponsor.");
+  },null,{saveLabel:"Add",
+    intro:"Only the name and what they gave is recorded. No amount, and it is not added to collections."});
+}
+function renderSponsors(){
+  var arr=sponsors().slice().sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
+  var host=$("s-list"); if(!host) return;
+  if(!arr.length){
+    host.innerHTML='<p class="empty" style="margin:0">Nobody added yet. Use “Add a sponsor”.</p>';
+    return;
+  }
+  host.innerHTML=arr.map(function(sp){
+    return '<div class="sponedit" data-sp="'+esc(sp.id)+'">'+
+      '<div><span class="n">'+esc(sp.name)+'</span>'+
+      '<span class="w">'+esc(sp.item||"")+(sp.notes?' · '+esc(sp.notes):'')+'</span></div>'+
+      '<span class="x"><button class="rowbtn" type="button">Edit</button></span></div>';
+  }).join("");
+  host.querySelectorAll("[data-sp]").forEach(function(row){
+    row.addEventListener("click",function(){
+      var sp=sponsors().filter(function(x){ return x.id===row.dataset.sp; })[0];
+      if(sp) editSponsor(sp);
+    });
+  });
+}
+/* the public thanks card merges register sponsors with the idol sponsor */
+function publicSponsors(y){
+  var out=[];
+  var yr=(PUB&&PUB.years&&PUB.years[String(y)])||{};
+  (yr.sponsors||[]).forEach(function(sp){
+    if(sp && sp.name) out.push({name:sp.name, item:sp.item||""});
+  });
+  var m=idolFor(y);
+  if(m && m.sponsor){
+    var dup=out.some(function(x){ return x.name===m.sponsor && /idol/i.test(x.item); });
+    if(!dup) out.unshift({name:m.sponsor, item:"Idol (విగ్రహం)"});
+  }
+  return out;
+}
+function renderPublicSponsors(y){
+  var card=$("pub-spon"), list=$("pub-spon-list");
+  if(!card||!list) return 0;
+  var arr=publicSponsors(y);
+  if(!arr.length){ card.hidden=true; list.innerHTML=""; return 0; }
+  card.hidden=false;
+  $("pub-spon-cap").textContent="Paid for by these people themselves in "+y+
+    " — not from the chanda collection";
+  list.innerHTML='<div class="sponlist">'+arr.map(function(sp){
+    return '<div class="sponrow"><span class="n">'+esc(sp.name)+'</span>'+
+      (sp.item?'<span class="w">'+esc(sp.item)+'</span>':'')+'</div>';
+  }).join("")+'</div>';
+  return arr.length;
+}
+
 function renderIdolWall(){
   var wrap=$("pub-idols"), grid=$("pub-idolgrid");
   if(!wrap||!grid) return 0;
@@ -1747,7 +2089,9 @@ function renderIdolWall(){
         '<div class="idolveil"><span class="idolhint">Double-tap to reveal '+esc(y)+'</span></div>'+
       '</div></div>'+
       '<figcaption class="idolcap"><span class="idolyear">'+esc(y)+'</span>'+
-        (m.caption?'<span class="idolnote">'+esc(m.caption)+'</span>':'')+'</figcaption>'+
+        (m.caption?'<span class="idolnote">'+esc(m.caption)+'</span>':'')+
+        (m.sponsor?'<span class="idolspon"><span class="k">Idol given by</span>'+
+          esc(m.sponsor)+'</span>':'')+'</figcaption>'+
       '</figure>';
   }).join("");
 
@@ -1773,7 +2117,8 @@ function renderIdolWall(){
     var zb=fig.querySelector(".idolzoom");
     if(zb) zb.addEventListener("click",function(e){
       e.stopPropagation();
-      openZoom(m.file, "Ganesh idol — "+y+(m.caption?" · "+m.caption:""));
+      openZoom(m.file, "Ganesh idol — "+y+(m.caption?" · "+m.caption:"")+
+        (m.sponsor?" · given by "+m.sponsor:""));
     });
   });
   return years.length;
@@ -1918,6 +2263,15 @@ function renderUpi(hostId, upi){
 function uploadIdol(file){
   if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
   if(!/^image\//.test(file.type)){ toast("That is not an image."); return; }
+  var prev=idolFor(ui.year)||{};
+  openSheet("This year\u2019s idol",[
+    {k:"sponsor",label:"Idol given by",value:prev.sponsor||"",
+     hint:"The sponsor who bought the idol. Shown under the picture on the public page. Leave blank if there is none."},
+    {k:"caption",label:"Caption",value:prev.caption||"",hint:"Optional, e.g. the form of Ganapathi"}
+  ],function(v){ doUploadIdol(file, v.sponsor, v.caption); },null,
+   {saveLabel:"Upload", intro:"One idol per year. This replaces whatever is there now."});
+}
+function doUploadIdol(file, sponsor, caption){
   var y=ui.year, note=noteEl(), id=uid("idol");
   var full="media/"+y+"/idol-"+id+".jpg", thumb="media/"+y+"/idol-"+id+"-t.jpg";
   note.textContent="Uploading the "+y+" idol…";
@@ -1938,7 +2292,8 @@ function uploadIdol(file){
     MEDIA.items=(MEDIA.items||[]).filter(function(m){
       return !(m.type==="idol" && String(m.year)===String(y)); });
     MEDIA.items.push({id:id, year:y, type:"idol", file:full, thumb:tpath||"",
-                      caption:"", addedAt:nowISO(), by:addedBy()});
+                      caption:String(caption||"").trim(), sponsor:String(sponsor||"").trim(),
+                      addedAt:nowISO(), by:addedBy()});
     MEDIA.updatedAt=nowISO();
     return saveManifest("Set the "+y+" Ganesh idol");
   }).then(function(){
@@ -2563,7 +2918,9 @@ function publicSummary(){
       contributorCount: cs.length,
       paidCount: cs.filter(function(c){ var st=paidState(c); return st==="paid"||st==="partial"; }).length,
       expenses: es.filter(function(e){ return num(e.amount); })
-                  .map(function(e){ return {category:e.category, item:e.item||"", amount:num(e.amount)}; })
+                  .map(function(e){ return {category:e.category, item:e.item||"", amount:num(e.amount)}; }),
+      sponsors: (yr.sponsors||[]).filter(function(sp){ return sp && sp.name; })
+                  .map(function(sp){ return {name:sp.name, item:sp.item||""}; })
     };
   });
   return out;
@@ -2711,7 +3068,8 @@ function removeYear(y){
    Wiring
    ========================================================= */
 function tabTo(which){
-  [["dash","panel-dash"],["coll","panel-coll"],["exp","panel-exp"],["media","panel-media"]].forEach(function(p){
+  [["dash","panel-dash"],["coll","panel-coll"],["exp","panel-exp"],
+   ["lend","panel-lend"],["media","panel-media"]].forEach(function(p){
     var on=p[0]===which;
     $("tab-"+p[0]).setAttribute("aria-selected",on?"true":"false");
     $(p[1]).hidden=!on;
@@ -2792,6 +3150,17 @@ $("target-save").addEventListener("click",function(){
 tapRouter("c-body",
   function(id){ return contributors().filter(function(r){return r.id===id;})[0]; },
   viewContributor, editContributor);
+tapRouter("l-body",
+  function(id){ return lending().filter(function(r){return r.id===id;})[0]; },
+  viewLending, editLending);
+$("tab-lend").addEventListener("click",function(){ tabTo("lend"); renderLending(); });
+$("l-add").addEventListener("click",addLending);
+$("s-add").addEventListener("click",addSponsor);
+$("l-open-save").addEventListener("click",function(){
+  var v=num($("l-open-input").value);
+  year().opening = (v===null||v<=0) ? null : v;
+  markDirty(); renderAll(); toast("Opening balance set.");
+});
 tapRouter("e-body",
   function(id){ return expenses().filter(function(r){return r.id===id;})[0]; },
   viewExpense, editExpense);
