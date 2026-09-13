@@ -168,6 +168,11 @@ textarea{resize:vertical;min-height:62px}
 .btn.danger{background:transparent;color:var(--danger);border-color:var(--line-strong)}
 .btn.danger-solid{background:var(--danger);color:#fff;border-color:transparent}
 .sheet-b .intro{margin:0;color:var(--ink-2);font-size:14px;line-height:1.55}
+.sortwrap{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.pubhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pubhead h3{margin:0}
+
+.sortwrap select{padding:7px 9px;font-size:13px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-ink);color:var(--accent-ink);font-weight:500}
@@ -203,6 +208,17 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .rowbtn{background:none;border:1px solid var(--line-strong);border-radius:7px;padding:4px 9px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
 .rowbtn:hover{background:var(--surface-2);color:var(--ink)}
 .plain-wrap{box-shadow:none;border:0;background:transparent}
+.upicard{margin-top:20px;padding:18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.upi-qr{flex:0 0 auto;background:#fff;padding:8px;border-radius:10px;border:1px solid var(--line);line-height:0}
+.upi-qr img{width:168px;height:168px;object-fit:contain;display:block}
+.upi-body{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:5px}
+.upi-body h3{font-size:15px}
+.upi-name{font-weight:600;font-size:14px}
+.upi-vpa{font-family:var(--mono);font-size:13px;color:var(--ink-2);word-break:break-all}
+.upi-note{font-size:12.5px;color:var(--muted);line-height:1.5}
+.upi-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.upi-warn{font-size:12px;color:var(--wait);line-height:1.5;margin-top:2px}
+@media (max-width:520px){ .upicard{justify-content:center;text-align:center} .upi-body{align-items:center} }
 /* ---- showcase: photo strip under the header, video rail on the right ---- */
 .strip{overflow:hidden;background:var(--surface-2);border-bottom:1px solid var(--line);
   padding:10px 0;position:relative}
@@ -393,6 +409,7 @@ footer p{margin:0}
         <div class="card tile spend"><span class="k">Spent</span><span class="v" id="d-exp">₹0</span><span class="d" id="d-exp-sub"></span></div>
         <div class="card tile hand"><span class="k">Balance in hand</span><span class="v" id="d-bal">₹0</span><span class="d">Collections minus expenses</span></div>
       </div>
+      <div class="card upicard" id="team-upi" hidden></div>
       <div class="card progwrap">
         <div class="progtop"><strong id="prog-label"></strong><span class="num" id="prog-pct" style="color:var(--muted)"></span></div>
         <div class="track"><div class="fill" id="prog-fill" style="width:0%"></div></div>
@@ -428,6 +445,18 @@ footer p{margin:0}
         <button class="chip" data-f="pending" aria-pressed="false" type="button">Pending</button>
           <button class="chip" data-f="new" aria-pressed="false" type="button">New this year</button>
         </div>
+        <label class="sortwrap"><span>Sort</span>
+          <select id="c-sort" aria-label="Sort contributors">
+            <option value="sno:1">Register order</option>
+            <option value="name:1">Name A–Z</option>
+            <option value="name:-1">Name Z–A</option>
+            <option value="amount:-1">Amount, highest first</option>
+            <option value="amount:1">Amount, lowest first</option>
+            <option value="prevAmount:-1">Last year, highest first</option>
+            <option value="due:-1">Most still due</option>
+            <option value="collectedBy:1">Collector</option>
+            <option value="date:-1">Most recent first</option>
+          </select></label>
         <button class="btn" id="c-add" type="button">Add contributor</button>
         <button class="btn sec" id="c-export" type="button">Export Excel</button>
       </div>
@@ -444,6 +473,15 @@ footer p{margin:0}
     <section class="panel" id="panel-exp" role="tabpanel" aria-labelledby="tab-exp" hidden>
       <div class="toolbar">
         <input type="text" class="search" id="e-search" placeholder="Search head, item or vendor…" aria-label="Search expenses">
+        <label class="sortwrap"><span>Sort</span>
+          <select id="e-sort" aria-label="Sort expenses">
+            <option value="sno:1">Register order</option>
+            <option value="category:1">Head A–Z</option>
+            <option value="amount:-1">Amount, highest first</option>
+            <option value="amount:1">Amount, lowest first</option>
+            <option value="paidBy:1">Paid by</option>
+            <option value="date:-1">Most recent first</option>
+          </select></label>
         <button class="btn" id="e-add" type="button">Add expense</button>
         <button class="btn sec" id="e-export" type="button">Export Excel</button>
       </div>
@@ -462,6 +500,8 @@ footer p{margin:0}
         <button class="btn sec" id="m-link" type="button">Add a video link</button>
         <button class="btn sec" id="m-clip" type="button">Upload a short clip</button>
         <button class="btn sec" id="m-thumbs" type="button" hidden>Make thumbnails</button>
+        <button class="btn sec" id="m-upi" type="button">Payment QR</button>
+        <input type="file" id="m-upifile" accept="image/*" hidden>
         <input type="file" id="m-file" accept="image/*" multiple hidden>
         <input type="file" id="m-vfile" accept="video/mp4,video/webm" hidden>
         <span class="upnote" id="m-note"></span>
@@ -511,14 +551,24 @@ footer p{margin:0}
       <p class="cap">Every rupee spent, grouped by head</p>
       <div id="pub-chart"></div>
     </div>
+    <div class="card upicard" id="pub-upi" hidden></div>
     <div class="card chart" id="pub-gal-card" style="margin-top:14px" hidden>
       <h3>From the festival</h3>
       <p class="cap" id="pub-gal-cap"></p>
       <div id="pub-gal"></div>
     </div>
     <div class="card chart" style="margin-top:14px">
-      <h3>Expense detail</h3>
-      <p class="cap">The same figures, item by item</p>
+      <div class="pubhead">
+        <div><h3>Expense detail</h3>
+        <p class="cap">The same figures, item by item</p></div>
+        <label class="sortwrap"><span>Sort</span>
+          <select id="pub-esort" aria-label="Sort expenses">
+            <option value="amount:-1">Amount, highest first</option>
+            <option value="amount:1">Amount, lowest first</option>
+            <option value="category:1">Head A–Z</option>
+            <option value="item:1">Item A–Z</option>
+          </select></label>
+      </div>
       <div class="tablewrap plain-wrap">
         <table class="pub-table">
           <thead><tr><th class="plain">Head</th><th class="plain">Item</th><th class="plain" style="text-align:right">Amount</th></tr></thead>
@@ -715,7 +765,7 @@ var doc = null;            // {festivalName, activeYear, years:{ "2026": {target
 var remoteSha = null;      // GitHub blob sha of data.json, for safe updates
 var dirty = false;
 var cfg = loadCfg();
-var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1} };
+var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1} };
 
 function loadCfg(){ try{ return JSON.parse(localStorage.getItem(LS_CFG)||"{}"); }catch(e){ return {}; } }
 function saveCfg(){ try{ localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }catch(e){} }
@@ -834,6 +884,15 @@ function startPublic(sum){
   sel.onchange = function(){ renderPublicYear(Number(this.value)); };
   renderPublicYear(active);
 }
+function renderPubExpenses(){
+  var list=ui.pubList||[];
+  $("pub-exp-body").innerHTML = sortRows(list, ui.pSort||{k:"amount",dir:-1})
+    .map(function(e){
+      return '<tr><td><span class="nm">'+esc(e.category||"—")+'</span></td>'+
+        '<td class="it" style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
+        '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
+    }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
+}
 function renderPublicYear(y){
   var sum=PUB, data=sum.years[String(y)]||{};
   $("pub-year").textContent=y;
@@ -859,13 +918,9 @@ function renderPublicYear(y){
   } else { card.hidden=true; }
 
   drawExpenseBars("pub-chart", byHead(list));
-  $("pub-exp-body").innerHTML = list.slice().sort(function(a,b){ return (num(b.amount)||0)-(num(a.amount)||0); })
-    .map(function(e){
-      return '<tr><td><span class="nm">'+esc(e.category||"—")+'</span></td>'+
-        '<td class="it" style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
-        '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
-    }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
+  ui.pubList=list; renderPubExpenses();
 
+  renderUpi("pub-upi", sum.upi);
   renderStrip(y);
   var nVids=renderReels(y);
   document.querySelector(".showwrap").classList.toggle("norail", !nVids);
@@ -900,6 +955,7 @@ function renderHeadline(){
   var cs=contributors();
   var paid=cs.filter(function(c){var st=paidState(c);return st==="paid"||st==="partial";}).length;
   $("d-coll-sub").textContent="from "+paid+" of "+cs.length+" names on the register";
+  renderUpi("team-upi", doc.upi);
   var owedList=cs.filter(function(c){ return outstanding(c)>0; });
   var owed=owedList.reduce(function(t,c){ return t+outstanding(c); },0);
   var oe=$("pledge-note");
@@ -1010,12 +1066,23 @@ function chartStatus(){
 function sortRows(rows,sort){
   var k=sort.k,dir=sort.dir;
   return rows.slice().sort(function(a,b){
-    if(k==="amount"||k==="prevAmount"||k==="sno"){
+    if(k==="due"){ return (outstanding(a)-outstanding(b))*dir; }
+    if(k==="status"){
+      var order={paid:0,partial:1,pending:2,"new":3};
+      return ((order[paidState(a)]||0)-(order[paidState(b)]||0))*dir;
+    }
+    if(k==="amount"||k==="prevAmount"||k==="sno"||k==="promised"){
       var x=num(a[k]),y=num(b[k]);
       if(x===null&&y===null) return 0; if(x===null) return 1; if(y===null) return -1;
       return (x-y)*dir;
     }
-    var p=String(a[k]==null?"":a[k]).toLowerCase(), q=String(b[k]==null?"":b[k]).toLowerCase();
+    if(k==="date"){
+      var p=String(a.date||""), q=String(b.date||"");
+      if(!p&&!q) return 0; if(!p) return 1; if(!q) return -1;
+      return p<q?-dir:p>q?dir:0;
+    }
+    var p=String(a[k]==null?"":a[k]).trim().toLowerCase(), q=String(b[k]==null?"":b[k]).trim().toLowerCase();
+    if(!p&&!q) return 0; if(!p) return 1; if(!q) return -1;
     return p<q?-dir:p>q?dir:0;
   });
 }
@@ -1532,6 +1599,70 @@ function renderReels(y){
   return vids.length;
 }
 
+/* The QR is an ordinary file in the repository, so it is readable by anyone
+   with the URL — which is what a collection QR is for. */
+function renderUpi(hostId, upi){
+  var el=$(hostId); if(!el) return false;
+  upi=upi||{};
+  var hasQr=!!upi.qr, hasVpa=!!(upi.vpa&&upi.vpa.trim());
+  if(!hasQr && !hasVpa){ el.hidden=true; el.innerHTML=""; return false; }
+  el.hidden=false;
+  var pay="";
+  if(hasVpa){
+    pay="upi://pay?pa="+encodeURIComponent(upi.vpa.trim())+
+        (upi.name?"&pn="+encodeURIComponent(upi.name):"")+"&cu=INR";
+  }
+  el.innerHTML=
+    (hasQr?'<div class="upi-qr"><img src="'+esc(upi.qr)+'" alt="UPI payment QR code" loading="lazy"></div>':'')+
+    '<div class="upi-body">'+
+      '<h3>Pay your chanda by UPI</h3>'+
+      (upi.name?'<span class="upi-name">'+esc(upi.name)+'</span>':'')+
+      (hasVpa?'<span class="upi-vpa">'+esc(upi.vpa)+'</span>':'')+
+      '<span class="upi-note">'+(upi.note?esc(upi.note):
+        'Scan the code with any UPI app, or tap below on a phone.')+'</span>'+
+      '<div class="upi-acts">'+
+        (hasVpa?'<a class="btn" href="'+esc(pay)+'">Open a UPI app</a>'+
+                '<button class="btn sec" type="button" data-upi-copy="'+esc(upi.vpa)+'">Copy UPI ID</button>':'')+
+      '</div>'+
+      '<span class="upi-warn">Before paying, check the app shows this name. '+
+      'Do not pay a QR sent to you privately.</span>'+
+    '</div>';
+  var cp=el.querySelector("[data-upi-copy]");
+  if(cp) cp.addEventListener("click",function(){
+    var v=cp.getAttribute("data-upi-copy");
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(v).then(function(){ toast("UPI ID copied."); },
+        function(){ toast("Could not copy — type it by hand."); });
+    } else toast(v);
+  });
+  return true;
+}
+
+function uploadUpiQr(file){
+  if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
+  if(!/^image\//.test(file.type)){ toast("That is not an image."); return; }
+  var note=$("m-note");
+  note.textContent="Uploading the payment QR…";
+  compressImage(file, 900, 0.9).then(blobToB64).then(function(b64){
+    var path="media/upi-qr.jpg";
+    return fetch(ghUrl(path)+"?ref="+encodeURIComponent(cfg.branch||"main"),{headers:ghHeaders()})
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){
+        return fetch(ghUrl(path),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
+          message:"Update the UPI payment QR", content:b64,
+          sha:j?j.sha:undefined, branch:cfg.branch||"main"})});
+      }).then(function(r){
+        if(!r.ok) return r.json().then(function(x){ throw new Error(x.message||("HTTP "+r.status)); });
+        doc.upi=doc.upi||{}; doc.upi.qr=path+"?v="+Date.now();
+        markDirty(); renderAll();
+        note.textContent="Payment QR uploaded. Publish to show it on the site.";
+        toast("Payment QR saved.");
+      });
+  }).catch(function(err){
+    note.textContent="Upload failed: "+err.message; toast("Upload failed.");
+  });
+}
+
 function openLightbox(items, i){
   var photos=items.filter(function(m){ return m.type==="photo"; });
   var idx=Math.max(0, photos.indexOf(items[i]));
@@ -1744,6 +1875,8 @@ function renderMedia(keepNote){
       : "Add your GitHub token in Settings to upload.";
   }
   $("m-add").disabled=!cfg.token; $("m-link").disabled=!cfg.token; $("m-clip").disabled=!cfg.token;
+  $("m-upi").disabled=!cfg.token;
+  $("m-upi").textContent=(doc.upi&&doc.upi.qr)?"Replace payment QR":"Payment QR";
   var miss=missingThumbs().length;
   $("m-thumbs").hidden = !(cfg.token && miss);
   if(miss && cfg.token) $("m-thumbs").textContent="Make "+miss+" thumbnail"+(miss===1?"":"s");
@@ -1905,7 +2038,7 @@ function mergeInto(target, incoming){
    No names, no phone numbers, no individual amounts. */
 function publicSummary(){
   var out={ v:2, festivalName: doc.festivalName||"Chanda Register",
-            activeYear: ui.year, updatedAt: nowISO(), years:{} };
+            activeYear: ui.year, updatedAt: nowISO(), upi: doc.upi||null, years:{} };
   Object.keys(doc.years).forEach(function(y){
     var yr=doc.years[y], cs=yr.contributors||[], es=yr.expenses||[];
     var coll=sumOf(cs,"amount"), exp=sumOf(es,"amount");
@@ -1958,6 +2091,11 @@ function openSettings(){
      hint:"Your name. The organiser sees it when you send entries."},
     {k:"collectors",label:"Collectors",value:(doc.collectors||[]).join(", "),
      hint:"Comma separated. These appear as suggestions in the \u201cCollected by\u201d box."},
+    {k:"upiName",label:"UPI payee name",value:(doc.upi&&doc.upi.name)||"",
+     hint:"Shown beside the QR so people can check who they are paying"},
+    {k:"upiVpa",label:"UPI ID",value:(doc.upi&&doc.upi.vpa)||"",
+     hint:"For example 9876543210@ybl. Adds a tap-to-pay button on phones. Upload the QR picture from the Photos tab."},
+    {k:"upiNote",label:"Note beside the QR",value:(doc.upi&&doc.upi.note)||""},
     {k:"publicCode",label:"Public view code",value:doc.publicCode||"",
      hint:"Share this with people outside the team. It opens a view of totals and expenses only — no names, no phone numbers, no individual amounts. Leave blank to stop updating the public page."},
     {k:"owner",label:"GitHub username",value:cfg.owner||"",hint:"Needed only to publish changes for everyone"},
@@ -1976,9 +2114,13 @@ function openSettings(){
         toast("The public code must differ from the team code.");
       } else { doc.publicCode=v.publicCode; markDirty(); }
     }
+    doc.upi=doc.upi||{};
+    if(v.upiName!==(doc.upi.name||"") || v.upiVpa!==(doc.upi.vpa||"") || v.upiNote!==(doc.upi.note||"")){
+      doc.upi.name=v.upiName; doc.upi.vpa=v.upiVpa; doc.upi.note=v.upiNote; markDirty();
+    }
     cfg.owner=v.owner; cfg.repo=v.repo; cfg.branch=v.branch||"main";
     cfg.path=v.path||DATA_FILE; cfg.token=v.token; cfg.device=v.device;
-    saveCfg(); renderDirty();
+    saveCfg(); renderDirty(); renderAll();
     $("btn-import").hidden = !cfg.token;
     var names=(v.collectors||"").split(",").map(function(x){return x.trim();}).filter(Boolean);
     if(JSON.stringify(names)!==JSON.stringify(doc.collectors||[])){ doc.collectors=names; markDirty(); }
@@ -2064,7 +2206,28 @@ $("m-file").addEventListener("change",function(){ if(this.files.length){ addPhot
 $("m-link").addEventListener("click",addVideoLink);
 $("m-clip").addEventListener("click",function(){ $("m-vfile").click(); });
 $("m-thumbs").addEventListener("click",backfillThumbs);
+$("m-upi").addEventListener("click",function(){ $("m-upifile").click(); });
+$("m-upifile").addEventListener("change",function(){ if(this.files[0]) uploadUpiQr(this.files[0]); this.value=""; });
 $("m-vfile").addEventListener("change",function(){ if(this.files[0]) addClip(this.files[0]); this.value=""; });
+function applySort(which, value){
+  var bits=String(value).split(":");
+  var sort={k:bits[0], dir:Number(bits[1])||1};
+  if(which==="c"){ ui.cSort=sort; renderContributors(); } else { ui.eSort=sort; renderExpenses(); }
+}
+function syncSortBox(which){
+  var sel=$(which==="c"?"c-sort":"e-sort");
+  var cur=(which==="c"?ui.cSort:ui.eSort);
+  var want=cur.k+":"+cur.dir, found=false;
+  for(var i=0;i<sel.options.length;i++) if(sel.options[i].value===want){ found=true; break; }
+  sel.value = found ? want : "";     // a header click can land outside the list
+}
+$("c-sort").addEventListener("change",function(){ applySort("c", this.value); });
+$("e-sort").addEventListener("change",function(){ applySort("e", this.value); });
+$("pub-esort").addEventListener("change",function(){
+  var bits=String(this.value).split(":");
+  ui.pSort={k:bits[0], dir:Number(bits[1])||1};
+  renderPubExpenses();
+});
 $("c-search").addEventListener("input",function(){ ui.cSearch=this.value; renderContributors(); });
 $("e-search").addEventListener("input",function(){ ui.eSearch=this.value; renderExpenses(); });
 $("c-filters").addEventListener("click",function(e){
@@ -2103,13 +2266,13 @@ document.querySelector("#c-table thead").addEventListener("click",function(e){
   var th=e.target.closest("th[data-sort]"); if(!th) return;
   var k=th.dataset.sort;
   ui.cSort={k:k,dir: ui.cSort.k===k ? -ui.cSort.dir : ((k==="amount"||k==="prevAmount")?-1:1)};
-  renderContributors();
+  syncSortBox("c"); renderContributors();
 });
 document.querySelector("#e-table thead").addEventListener("click",function(e){
   var th=e.target.closest("th[data-sort]"); if(!th) return;
   var k=th.dataset.sort;
   ui.eSort={k:k,dir: ui.eSort.k===k ? -ui.eSort.dir : (k==="amount"?-1:1)};
-  renderExpenses();
+  syncSortBox("e"); renderExpenses();
 });
 var STRIP_RS=null;
 window.addEventListener("resize",function(){
