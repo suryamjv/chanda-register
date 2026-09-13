@@ -313,7 +313,8 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .zhint{opacity:.5;font-size:12px}
 .taphint{margin:9px 2px 0;font-size:12.5px;color:var(--muted)}
 /* ---------- the idol wall ---------- */
-.idolwall{margin-top:20px}
+.idolband{max-width:1180px;margin:0 auto;padding:0 20px}
+.idolwall{margin-top:22px}
 .idolgrid{display:grid;gap:20px;margin-top:16px;
   grid-template-columns:repeat(auto-fit,minmax(172px,214px));justify-content:center}
 .idol{margin:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:0}
@@ -556,7 +557,7 @@ footer p{margin:0}
 
     <section class="panel" id="panel-coll" role="tabpanel" aria-labelledby="tab-coll" hidden>
       <div class="toolbar">
-        <input type="text" class="search" id="c-search" placeholder="Search name, note or last year's entry…" aria-label="Search contributors">
+        <input type="text" class="search" id="c-search" placeholder="Any words — this year’s or last year’s name, collector, note, amount…" aria-label="Search contributors">
         <div class="chips" id="c-filters">
           <button class="chip" data-f="all" aria-pressed="true" type="button">All</button>
           <button class="chip" data-f="paid" aria-pressed="false" type="button">Received</button>
@@ -592,7 +593,7 @@ footer p{margin:0}
 
     <section class="panel" id="panel-exp" role="tabpanel" aria-labelledby="tab-exp" hidden>
       <div class="toolbar">
-        <input type="text" class="search" id="e-search" placeholder="Search head, item or vendor…" aria-label="Search expenses">
+        <input type="text" class="search" id="e-search" placeholder="Any words — head, item, who paid, amount, date…" aria-label="Search expenses">
         <label class="sortwrap"><span>Sort</span>
           <select id="e-sort" aria-label="Sort expenses">
             <option value="sno:1">Register order</option>
@@ -638,6 +639,7 @@ footer p{margin:0}
         </div>
       </div>
       <div class="toolbar" style="margin-top:14px">
+        <input type="text" class="search" id="l-search" placeholder="Search holder, note, amount or date…" aria-label="Search the balance record">
         <button class="btn" id="l-add" type="button">Give money to someone</button>
       </div>
       <div class="tablewrap"><table id="l-table"><thead><tr>
@@ -692,6 +694,13 @@ footer p{margin:0}
     </div>
   </div></div>
   <div class="strip" id="pub-strip" hidden><div class="striptrack" id="pub-track"></div></div>
+  <div class="idolband">
+    <section class="card idolwall" id="pub-idols" hidden>
+    <h3>Our Ganesh, year by year</h3>
+    <p class="cap">Each one starts veiled &mdash; double-tap a frame to reveal it</p>
+    <div class="idolgrid" id="pub-idolgrid"></div>
+  </section>
+  </div>
   <main>
     <div class="banner pub-note" id="pub-note"></div>
     <div class="showwrap">
@@ -731,11 +740,6 @@ footer p{margin:0}
       <p class="cap" id="pub-spon-cap"></p>
       <div id="pub-spon-list"></div>
     </section>
-    <section class="card idolwall" id="pub-idols" hidden>
-      <h3>Our Ganesh, year by year</h3>
-      <p class="cap">Each one starts veiled &mdash; double-tap a frame to reveal it</p>
-      <div class="idolgrid" id="pub-idolgrid"></div>
-    </section>
     <div class="card chart" style="margin-top:20px">
       <h3>Where the money went</h3>
       <p class="cap">Every rupee spent, grouped by head</p>
@@ -751,6 +755,7 @@ footer p{margin:0}
       <div class="pubhead">
         <div><h3>Expense detail</h3>
         <p class="cap">The same figures, item by item</p></div>
+        <input type="text" class="search" id="pub-esearch" placeholder="Search head or item…" aria-label="Search expenses" style="max-width:260px">
         <label class="sortwrap"><span>Sort</span>
           <select id="pub-esort" aria-label="Sort expenses">
             <option value="amount:-1">Amount, highest first</option>
@@ -956,7 +961,7 @@ var doc = null;            // {festivalName, activeYear, years:{ "2026": {target
 var remoteSha = null;      // GitHub blob sha of data.json, for safe updates
 var dirty = false;
 var cfg = loadCfg();
-var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1} };
+var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1}, lSearch:"", pSearch:"" };
 
 function loadCfg(){ try{ return JSON.parse(localStorage.getItem(LS_CFG)||"{}"); }catch(e){ return {}; } }
 function saveCfg(){ try{ localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }catch(e){} }
@@ -1078,13 +1083,16 @@ function startPublic(sum){
   renderHandler();
 }
 function renderPubExpenses(){
-  var list=ui.pubList||[];
+  var pwords=searchWords(ui.pSearch||"");
+  var list=(ui.pubList||[]).filter(function(e){
+    return matchesWords([e.category, e.item, e.amount], pwords); });
   $("pub-exp-body").innerHTML = sortRows(list, ui.pSort||{k:"amount",dir:-1})
     .map(function(e){
       return '<tr><td><span class="nm">'+esc(e.category||"—")+'</span></td>'+
         '<td class="it" style="color:var(--ink-2);font-size:13.5px">'+esc(e.item||"")+'</td>'+
         '<td class="amt num" data-l="Amount"><strong>'+money(e.amount)+'</strong></td></tr>';
-    }).join("") || '<tr><td colspan="3" class="empty">Nothing spent yet.</td></tr>';
+    }).join("") || '<tr><td colspan="3" class="empty">'+
+      (pwords.length?"Nothing matches that.":"Nothing spent yet.")+'</td></tr>';
 }
 function renderPublicYear(y){
   var sum=PUB, data=sum.years[String(y)]||{};
@@ -1198,8 +1206,13 @@ function renderLending(){
   if(document.activeElement!==$("l-open-input")) $("l-open-input").value = opening()||"";
   $("l-open-hint").textContent = "Counted separately from chanda, so it never looks like a donation.";
 
-  var rows=lending().slice().sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
+  var lwords=searchWords(ui.lSearch||"");
+  var rows=lending().filter(function(l){ return matchesWords(lendHaystack(l), lwords); })
+    .sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
   $("l-empty").hidden = rows.length>0;
+  $("l-empty").textContent = lwords.length
+    ? "Nothing in this year's balance record matches that."
+    : "Nothing given out yet for this year.";
   $("l-body").innerHTML = rows.map(function(l){
     var st=lendState(l);
     var stripe = st==="back"?"var(--good)":st==="overdue"?"var(--wait)":"var(--part)";
@@ -1421,6 +1434,39 @@ function chartStatus(){
 /* =========================================================
    Tables
    ========================================================= */
+/* ---------- keyword search ----------
+   Every word you type must appear somewhere in the row, in any order and in
+   any field, so "sivaji gunjipalli" finds "Gunjipalli Sivaji" and last year's
+   "G. Sivaji" finds the same person under this year's full name. */
+function searchNorm(v){
+  return String(v==null?"":v)
+    .toLowerCase()
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()'"\[\]]/g," ")   /* G. Sivaji === g sivaji */
+    .replace(/\s+/g," ")
+    .trim();
+}
+function searchWords(q){
+  return searchNorm(q).split(" ").filter(Boolean);
+}
+function matchesWords(parts, words){
+  if(!words.length) return true;
+  var hay=searchNorm(parts.join(" "));
+  for(var i=0;i<words.length;i++){ if(hay.indexOf(words[i])<0) return false; }
+  return true;
+}
+function contributorHaystack(c){
+  return [c.name, c.prevName, c.notes, c.tag, c.phone, c.collectedBy,
+          c.sno, c.amount, c.prevAmount, c.promised, c.date, fmtDate(c.date)];
+}
+function expenseHaystack(e){
+  return [e.category, e.item, e.paidBy, e.notes, e.mode,
+          e.sno, e.amount, e.date, fmtDate(e.date)];
+}
+function lendHaystack(l){
+  return [l.holder, l.notes, l.phone, l.sno, l.amount, l.agreed, l.returned,
+          l.given, fmtDate(l.given), l.dueDate, fmtDate(l.dueDate)];
+}
+
 function sortRows(rows,sort){
   var k=sort.k,dir=sort.dir;
   return rows.slice().sort(function(a,b){
@@ -1445,11 +1491,10 @@ function sortRows(rows,sort){
   });
 }
 function renderContributors(){
-  var q=ui.cSearch.trim().toLowerCase();
+  var words=searchWords(ui.cSearch);
   var rows=contributors().filter(function(c){
     if(ui.cFilter!=="all" && paidState(c)!==ui.cFilter) return false;
-    if(!q) return true;
-    return [c.name,c.prevName,c.notes,c.tag,c.phone,c.collectedBy].join(" ").toLowerCase().indexOf(q)>=0;
+    return matchesWords(contributorHaystack(c), words);
   });
   rows=sortRows(rows,ui.cSort);
   $("c-empty").hidden = rows.length>0;
@@ -1486,10 +1531,9 @@ function renderContributors(){
   }).join("");
 }
 function renderExpenses(){
-  var q=ui.eSearch.trim().toLowerCase();
+  var words=searchWords(ui.eSearch);
   var rows=expenses().filter(function(e){
-    if(!q) return true;
-    return [e.category,e.item,e.paidBy,e.notes,e.mode].join(" ").toLowerCase().indexOf(q)>=0;
+    return matchesWords(expenseHaystack(e), words);
   });
   rows=sortRows(rows,ui.eSort);
   $("e-empty").hidden = rows.length>0;
@@ -3156,6 +3200,8 @@ tapRouter("l-body",
 $("tab-lend").addEventListener("click",function(){ tabTo("lend"); renderLending(); });
 $("l-add").addEventListener("click",addLending);
 $("s-add").addEventListener("click",addSponsor);
+$("l-search").addEventListener("input",function(){ ui.lSearch=this.value; renderLending(); });
+$("pub-esearch").addEventListener("input",function(){ ui.pSearch=this.value; renderPubExpenses(); });
 $("l-open-save").addEventListener("click",function(){
   var v=num($("l-open-input").value);
   year().opening = (v===null||v<=0) ? null : v;
