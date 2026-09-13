@@ -1,6 +1,6 @@
 {
  "v": 1,
- "updatedAt": "2026-09-11T12:17:06.776Z",
+ "updatedAt": "2026-09-13T13:17:02.858Z",
  "items": [
   {
    "id": "rmtwv0w5csfkso",
@@ -49,6 +49,16 @@
    "url": "https://youtu.be/_CiVp6_O008?si=jX3nhADgKrpz1Oys",
    "caption": "Sample video",
    "addedAt": "2026-09-11T11:16:47.542Z"
+  },
+  {
+   "id": "rmtzu8wxoosg8v",
+   "year": 2025,
+   "type": "idol",
+   "file": "media/2025/idol-rmtzu8wxoosg8v.jpg",
+   "thumb": "media/2025/idol-rmtzu8wxoosg8v-t.jpg",
+   "caption": "",
+   "addedAt": "2026-09-13T13:17:02.843Z",
+   "by": "Surya"
   }
  ]
 }
