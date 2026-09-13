@@ -351,6 +351,14 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
   display:none;align-items:center;justify-content:center}
 .idol.shown .idolzoom{display:flex}
 .idolzoom:hover{background:rgba(18,13,8,.85)}
+.foot-handler{margin-top:14px}
+.foot-handler button{background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px;padding:6px 8px;font-family:inherit}
+.foot-handler button:hover{color:var(--ink-2)}
+.handler{margin-top:20px;border:1px solid var(--accent-ink,#8a5f16)}
+.handler .upbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.galby{position:absolute;bottom:6px;left:6px;z-index:2;background:rgba(18,13,8,.66);
+  color:#e8dcc2;border-radius:999px;padding:3px 9px;font-size:10.5px}
 .galbadge{position:absolute;top:6px;left:6px;z-index:2;background:rgba(18,13,8,.72);
   color:#f4e3bd;border:1px solid rgba(244,227,189,.45);border-radius:999px;
   padding:3px 9px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
@@ -641,6 +649,27 @@ footer p{margin:0}
       <div class="progtop"><strong id="pub-prog-label"></strong><span class="num" id="pub-prog-pct" style="color:var(--muted)"></span></div>
       <div class="track"><div class="fill" id="pub-prog-fill" style="width:0%"></div></div>
     </div>
+    <section class="card handler" id="pub-handler" hidden>
+      <div class="pubhead">
+        <div><h3>Photos &mdash; <span id="h-year"></span></h3>
+        <p class="cap" id="h-who"></p></div>
+        <button class="btn sec" id="h-out" type="button">Sign out</button>
+      </div>
+      <div class="upbar" style="margin-top:12px">
+        <button class="btn" id="h-add" type="button">Add photos</button>
+        <button class="btn sec" id="h-link" type="button">Add a video link</button>
+        <button class="btn sec" id="h-clip" type="button">Upload a short clip</button>
+        <button class="btn sec" id="h-idol" type="button">This year&rsquo;s idol</button>
+        <button class="btn sec" id="h-upi" type="button">Payment QR</button>
+        <button class="btn sec" id="h-thumbs" type="button" hidden>Make thumbnails</button>
+        <input type="file" id="h-upifile" accept="image/*" hidden>
+        <input type="file" id="h-file" accept="image/*" multiple hidden>
+        <input type="file" id="h-vfile" accept="video/mp4,video/webm" hidden>
+        <input type="file" id="h-idolfile" accept="image/*" hidden>
+        <span class="upnote" id="h-note"></span>
+      </div>
+      <div id="h-gal" style="margin-top:12px"></div>
+    </section>
     <section class="card idolwall" id="pub-idols" hidden>
       <h3>Our Ganesh, year by year</h3>
       <p class="cap">Each one starts veiled &mdash; double-tap a frame to reveal it</p>
@@ -685,6 +714,7 @@ footer p{margin:0}
     <p class="foot-values te">ఐక్యత <b>Unity</b> &middot; సేవ <b>Service</b> &middot; సంస్కృతి <b>Culture</b> &middot; నిబద్ధత <b>Commitment</b> &middot; విజయం <b>Success</b></p>
     <p id="pub-foot"></p>
     <p class="foot-morya te">గణపతి బప్పా మోరియా ! మంగళమూర్తి మోరియా !!</p>
+    <p class="foot-handler"><button type="button" id="pub-hsign">Photo handler sign-in</button></p>
   </footer>
 </div>
 
@@ -984,6 +1014,7 @@ function startPublic(sum){
   sel.onchange = function(){ renderPublicYear(Number(this.value)); };
   renderPublicYear(active);
   renderIdolWall();
+  renderHandler();
 }
 function renderPubExpenses(){
   var list=ui.pubList||[];
@@ -996,6 +1027,8 @@ function renderPubExpenses(){
 }
 function renderPublicYear(y){
   var sum=PUB, data=sum.years[String(y)]||{};
+  ui.year=Number(y);                 /* the photo tools act on the year on screen */
+  if(HANDLER) renderHandler();
   $("pub-year").textContent=y;
   var coll=num(data.collected)||0, exp=num(data.spent)||0;
   var bal=(data.balance==null? coll-exp : num(data.balance))||0;
@@ -1546,7 +1579,8 @@ function renderGallery(hostId, y, editable){
         '<span class="host">'+esc(videoHost(m.url))+'</span>'+
         (m.caption?'<span class="cap">'+esc(m.caption)+'</span>':'')+'</a></figure>';
     }
-    var badge = m.type==="idol" ? '<span class="galbadge">Idol</span>' : '';
+    var badge = (m.type==="idol" ? '<span class="galbadge">Idol</span>' : '')+
+      (editable && m.by ? '<span class="galby">'+esc(m.by)+'</span>' : '');
     return '<figure data-i="'+i+'">'+del+badge+'<img src="'+esc(m.thumb||m.file)+'" decoding="async" loading="lazy" alt="'+esc(m.caption||((m.type==="idol"?"Ganesh idol, ":"Photo from ")+y))+'">'+
       (m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>';
   }).join("")+'</div>';
@@ -1625,6 +1659,75 @@ function stopReels(){ REEL_TIMERS.forEach(clearTimeout); REEL_TIMERS=[]; }
 
 /* Photos scroll under the header; the track is duplicated so the loop is seamless. */
 /* ---------- the idol wall: one framed picture per year ---------- */
+/* ---------- photo handler: public code + own token, photos only ----------
+   A handler never holds the team code, so the register stays encrypted to them.
+   Their token still writes to the repo, so give it only to people you trust. */
+var HANDLER = false;
+function noteEl(){ return HANDLER ? $("h-note") : $("m-note"); }
+function addedBy(){ return cfg.handler || cfg.device || ""; }
+function qrPath(){
+  return (MEDIA && MEDIA.upiQr) || (doc && doc.upi && doc.upi.qr) || "";
+}
+
+function handlerReady(){
+  return !!(cfg.handler && cfg.token && cfg.owner && cfg.repo);
+}
+function handlerNames(){
+  var t=(PUB && PUB.mediaTeam) || [];
+  return t.filter(Boolean);
+}
+function openHandlerSignIn(){
+  var names=handlerNames();
+  if(!names.length){
+    toast("No photo handlers have been set up yet.");
+    return;
+  }
+  openSheet("Photo handler sign-in",[
+    {k:"who",label:"Who are you",type:"select",options:names,allowBlank:true,value:cfg.handler||""},
+    {k:"owner",label:"GitHub username",value:cfg.owner||"",
+     hint:"The organiser will tell you these three."},
+    {k:"repo",label:"Repository",value:cfg.repo||""},
+    {k:"branch",label:"Branch",value:cfg.branch||"main"},
+    {k:"token",label:"Your GitHub token",type:"password",value:cfg.token||"",
+     hint:"Make it on your own GitHub account, Contents: read and write on this repo only. It is kept in this browser and never leaves it except to GitHub."}
+  ],function(v){
+    if(!v.who){ toast("Pick your name first."); return false; }
+    cfg.handler=v.who; cfg.owner=v.owner; cfg.repo=v.repo;
+    cfg.branch=v.branch||"main"; cfg.token=v.token;
+    saveCfg();
+    HANDLER=handlerReady();
+    if(!HANDLER){ toast("Fill in the repository details and your token."); }
+    else toast("Signed in as "+v.who+". You can manage photos now.");
+    renderHandler();
+  },null,{saveLabel:"Sign in",
+    intro:"This lets you add and remove photos and videos. It does not show the register — no names, no amounts."});
+}
+function handlerSignOut(){
+  cfg.handler=""; cfg.token=""; saveCfg();
+  HANDLER=false; renderHandler();
+  toast("Signed out. The token was removed from this browser.");
+}
+function renderHandler(keepNote){
+  var panel=$("pub-handler"); if(!panel) return;
+  HANDLER=handlerReady();
+  panel.hidden=!HANDLER;
+  var link=$("pub-hsign");
+  if(link) link.textContent = HANDLER ? "Signed in as "+cfg.handler : "Photo handler sign-in";
+  if(!HANDLER) return;
+  $("h-year").textContent=ui.year;
+  $("h-who").textContent="Signed in as "+cfg.handler+
+    " · these show on this page for everyone with the public code";
+  var n=renderGallery("h-gal", ui.year, true);
+  if(!keepNote){
+    $("h-note").textContent = n ? n+" item"+(n===1?"":"s")+" in "+ui.year : "";
+  }
+  $("h-idol").textContent = idolFor(ui.year) ? "Replace the "+ui.year+" idol" : "This year’s idol";
+  $("h-upi").textContent = qrPath() ? "Replace payment QR" : "Payment QR";
+  var miss=missingThumbs().length;
+  $("h-thumbs").hidden = !miss;
+  if(miss) $("h-thumbs").textContent="Make "+miss+" thumbnail"+(miss===1?"":"s");
+}
+
 function renderIdolWall(){
   var wrap=$("pub-idols"), grid=$("pub-idolgrid");
   if(!wrap||!grid) return 0;
@@ -1767,7 +1870,8 @@ function renderReels(y){
 function renderUpi(hostId, upi){
   var el=$(hostId); if(!el) return false;
   upi=upi||{};
-  var hasQr=!!upi.qr, hasVpa=!!(upi.vpa&&upi.vpa.trim());
+  var qr=qrPath()||upi.qr||"";
+  var hasQr=!!qr, hasVpa=!!(upi.vpa&&upi.vpa.trim());
   if(!hasQr && !hasVpa){ el.hidden=true; el.innerHTML=""; return false; }
   el.hidden=false;
   var pay="";
@@ -1776,7 +1880,7 @@ function renderUpi(hostId, upi){
         (upi.name?"&pn="+encodeURIComponent(upi.name):"")+"&cu=INR";
   }
   el.innerHTML=
-    (hasQr?'<div class="upi-qr"><img src="'+esc(upi.qr)+'" alt="UPI payment QR code" loading="lazy"></div>':'')+
+    (hasQr?'<div class="upi-qr"><img src="'+esc(qr)+'" alt="UPI payment QR code" loading="lazy"></div>':'')+
     '<div class="upi-body">'+
       '<h3>Pay your chanda by UPI</h3>'+
       (upi.name?'<span class="upi-name">'+esc(upi.name)+'</span>':'')+
@@ -1795,7 +1899,7 @@ function renderUpi(hostId, upi){
     qimg.setAttribute("role","button");
     qimg.setAttribute("tabindex","0");
     qimg.setAttribute("title","Tap to enlarge");
-    var openQr=function(){ openZoom(upi.qr, (upi.name?esc0(upi.name)+" — ":"")+"payment QR"); };
+    var openQr=function(){ openZoom(qr, (upi.name?esc0(upi.name)+" — ":"")+"payment QR"); };
     qimg.addEventListener("click",openQr);
     qimg.addEventListener("keydown",function(e){
       if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openQr(); } });
@@ -1814,7 +1918,7 @@ function renderUpi(hostId, upi){
 function uploadIdol(file){
   if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
   if(!/^image\//.test(file.type)){ toast("That is not an image."); return; }
-  var y=ui.year, note=$("m-note"), id=uid("idol");
+  var y=ui.year, note=noteEl(), id=uid("idol");
   var full="media/"+y+"/idol-"+id+".jpg", thumb="media/"+y+"/idol-"+id+"-t.jpg";
   note.textContent="Uploading the "+y+" idol…";
   compressImage(file, 1400, 0.86).then(blobToB64).then(function(b64){
@@ -1834,7 +1938,7 @@ function uploadIdol(file){
     MEDIA.items=(MEDIA.items||[]).filter(function(m){
       return !(m.type==="idol" && String(m.year)===String(y)); });
     MEDIA.items.push({id:id, year:y, type:"idol", file:full, thumb:tpath||"",
-                      caption:"", addedAt:nowISO()});
+                      caption:"", addedAt:nowISO(), by:addedBy()});
     MEDIA.updatedAt=nowISO();
     return saveManifest("Set the "+y+" Ganesh idol");
   }).then(function(){
@@ -1849,7 +1953,7 @@ function uploadIdol(file){
 function uploadUpiQr(file){
   if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
   if(!/^image\//.test(file.type)){ toast("That is not an image."); return; }
-  var note=$("m-note");
+  var note=noteEl();
   note.textContent="Uploading the payment QR…";
   compressImage(file, 900, 0.9).then(blobToB64).then(function(b64){
     var path="media/upi-qr.jpg";
@@ -1861,10 +1965,13 @@ function uploadUpiQr(file){
           sha:j?j.sha:undefined, branch:cfg.branch||"main"})});
       }).then(function(r){
         if(!r.ok) return r.json().then(function(x){ throw new Error(x.message||("HTTP "+r.status)); });
-        doc.upi=doc.upi||{}; doc.upi.qr=path+"?v="+Date.now();
-        markDirty(); renderAll();
-        note.textContent="Payment QR uploaded. Publish to show it on the site.";
-        toast("Payment QR saved.");
+        MEDIA.upiQr=path+"?v="+Date.now(); MEDIA.updatedAt=nowISO();
+        if(doc){ doc.upi=doc.upi||{}; doc.upi.qr=MEDIA.upiQr; markDirty(); }
+        return saveManifest("Update the UPI payment QR").then(function(){
+          if(doc) renderAll(); else { renderUpi("pub-upi", (PUB&&PUB.upi)||{}); renderHandler(true); }
+          note.textContent="Payment QR updated. It is live on the site now.";
+          toast("Payment QR saved.");
+        });
       });
   }).catch(function(err){
     note.textContent="Upload failed: "+err.message; toast("Upload failed.");
@@ -2120,7 +2227,7 @@ function addPhotos(files){
   if(!cfg.token){ toast("Add your GitHub token in Settings before uploading."); return; }
   var list=[].slice.call(files).filter(function(f){ return /^image\//.test(f.type); });
   if(!list.length){ toast("Those were not image files."); return; }
-  var note=$("m-note"); var done=0, failed=0;
+  var note=noteEl(); var done=0, failed=0;
   note.textContent="Preparing "+list.length+" photo"+(list.length===1?"":"s")+"…";
   var chain=Promise.resolve();
   list.forEach(function(f){
@@ -2146,7 +2253,8 @@ function addPhotos(files){
           });
         }).catch(function(){ return ""; }).then(function(tpath){
           MEDIA.items.push({id:id, year:ui.year, type:"photo", file:full,
-                            thumb:tpath||"", caption:"", addedAt:nowISO(), size:size});
+                            thumb:tpath||"", caption:"", addedAt:nowISO(), size:size,
+                            by:addedBy()});
           done++;
         });
       }).catch(function(){ failed++; });
@@ -2168,7 +2276,7 @@ function addPhotos(files){
 var CLIP_MAX = 24*1024*1024;   // keep the repository and village phones happy
 function addClip(file){
   if(!cfg.token){ toast("Add your GitHub token in Settings before uploading."); return; }
-  var note=$("m-note");
+  var note=noteEl();
   if(file.size>CLIP_MAX){
     note.textContent="That clip is "+(file.size/1048576).toFixed(1)+" MB. Keep clips under 24 MB — trim it, or post it to YouTube and add the link instead.";
     toast("Clip too large.");
@@ -2182,7 +2290,8 @@ function addClip(file){
       message:"Add a clip to the "+ui.year+" gallery", content:b64, branch:cfg.branch||"main"
     })}).then(function(r){
       if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||("HTTP "+r.status)); });
-      MEDIA.items.push({id:id, year:ui.year, type:"clip", file:path, caption:"", addedAt:nowISO(), size:file.size});
+      MEDIA.items.push({id:id, year:ui.year, type:"clip", file:path, caption:"", addedAt:nowISO(),
+                        size:file.size, by:addedBy()});
       MEDIA.updatedAt=nowISO();
       return saveManifest("Add a clip to "+ui.year);
     });
@@ -2201,7 +2310,8 @@ function addVideoLink(){
     {k:"caption",label:"Caption",value:""}
   ],function(v){
     if(!/^https?:\/\//i.test(v.url||"")){ toast("That does not look like a link."); return false; }
-    MEDIA.items.push({id:uid("m"), year:ui.year, type:"video", url:v.url, caption:v.caption, addedAt:nowISO()});
+    MEDIA.items.push({id:uid("m"), year:ui.year, type:"video", url:v.url, caption:v.caption,
+                      addedAt:nowISO(), by:addedBy()});
     MEDIA.updatedAt=nowISO();
     saveManifest("Add a video link to "+ui.year).then(function(){
       renderMedia(); toast("Video link added.");
@@ -2237,7 +2347,7 @@ function backfillThumbs(){
   if(!cfg.token){ toast("Add your GitHub token in Settings first."); return; }
   var list=missingThumbs();
   if(!list.length){ toast("Every photo already has a thumbnail."); return; }
-  var note=$("m-note"), done=0, failed=0;
+  var note=noteEl(), done=0, failed=0;
   var chain=Promise.resolve();
   list.forEach(function(m,i){
     chain=chain.then(function(){
@@ -2269,6 +2379,7 @@ function backfillThumbs(){
   }).catch(function(e){ note.textContent="Failed: "+e.message; });
 }
 function renderMedia(keepNote){
+  if(HANDLER){ renderHandler(keepNote); return; }
   $("m-year").textContent=ui.year;
   var n=renderGallery("m-gal", ui.year, true);
   if(!keepNote){
@@ -2277,7 +2388,7 @@ function renderMedia(keepNote){
   }
   $("m-add").disabled=!cfg.token; $("m-link").disabled=!cfg.token; $("m-clip").disabled=!cfg.token;
   $("m-upi").disabled=!cfg.token;
-  $("m-upi").textContent=(doc.upi&&doc.upi.qr)?"Replace payment QR":"Payment QR";
+  $("m-upi").textContent=qrPath()?"Replace payment QR":"Payment QR";
   $("m-idol").disabled=!cfg.token;
   $("m-idol").textContent=idolFor(ui.year)?"Replace the "+ui.year+" idol":"This year’s idol";
   var miss=missingThumbs().length;
@@ -2441,7 +2552,8 @@ function mergeInto(target, incoming){
    No names, no phone numbers, no individual amounts. */
 function publicSummary(){
   var out={ v:2, festivalName: doc.festivalName||"Chanda Register",
-            activeYear: ui.year, updatedAt: nowISO(), upi: doc.upi||null, years:{} };
+            activeYear: ui.year, updatedAt: nowISO(), upi: doc.upi||null,
+            mediaTeam: (doc.mediaTeam||[]).slice(0,2), years:{} };
   Object.keys(doc.years).forEach(function(y){
     var yr=doc.years[y], cs=yr.contributors||[], es=yr.expenses||[];
     var coll=sumOf(cs,"amount"), exp=sumOf(es,"amount");
@@ -2494,6 +2606,9 @@ function openSettings(){
      hint:"Your name. The organiser sees it when you send entries."},
     {k:"collectors",label:"Collectors",value:(doc.collectors||[]).join(", "),
      hint:"Comma separated. These appear as suggestions in the \u201cCollected by\u201d box."},
+    {k:"media1",label:"Photo handler 1",value:(doc.mediaTeam||[])[0]||"",
+     hint:"Whoever looks after photos and videos. They sign in with the public code plus their own GitHub token \u2014 they never see the register."},
+    {k:"media2",label:"Photo handler 2",value:(doc.mediaTeam||[])[1]||""},
     {k:"upiName",label:"UPI payee name",value:(doc.upi&&doc.upi.name)||"",
      hint:"Shown beside the QR so people can check who they are paying"},
     {k:"upiVpa",label:"UPI ID",value:(doc.upi&&doc.upi.vpa)||"",
@@ -2527,6 +2642,8 @@ function openSettings(){
     $("btn-import").hidden = !cfg.token;
     var names=(v.collectors||"").split(",").map(function(x){return x.trim();}).filter(Boolean);
     if(JSON.stringify(names)!==JSON.stringify(doc.collectors||[])){ doc.collectors=names; markDirty(); }
+    var team=[v.media1,v.media2].map(function(x){ return String(x||"").trim(); }).filter(Boolean);
+    if(JSON.stringify(team)!==JSON.stringify(doc.mediaTeam||[])){ doc.mediaTeam=team; markDirty(); }
     toast(cfg.token?"Settings saved. Publishing is enabled on this device.":"Settings saved.");
   }, yrs.length>1?function(){ removeYear(ui.year); }:null,
      {deleteLabel:"Remove "+ui.year+" from this register", deleteArmedLabel:armed,
@@ -2613,6 +2730,21 @@ $("m-upi").addEventListener("click",function(){ $("m-upifile").click(); });
 $("m-upifile").addEventListener("change",function(){ if(this.files[0]) uploadUpiQr(this.files[0]); this.value=""; });
 $("m-idol").addEventListener("click",function(){ $("m-idolfile").click(); });
 $("m-idolfile").addEventListener("change",function(){ if(this.files[0]) uploadIdol(this.files[0]); this.value=""; });
+
+/* photo handler controls — the same actions as the Photos tab */
+$("pub-hsign").addEventListener("click",function(){
+  if(HANDLER) renderHandler(); else openHandlerSignIn(); });
+$("h-out").addEventListener("click",handlerSignOut);
+$("h-add").addEventListener("click",function(){ $("h-file").click(); });
+$("h-file").addEventListener("change",function(){ if(this.files.length) addPhotos(this.files); this.value=""; });
+$("h-clip").addEventListener("click",function(){ $("h-vfile").click(); });
+$("h-vfile").addEventListener("change",function(){ if(this.files[0]) addClip(this.files[0]); this.value=""; });
+$("h-idol").addEventListener("click",function(){ $("h-idolfile").click(); });
+$("h-idolfile").addEventListener("change",function(){ if(this.files[0]) uploadIdol(this.files[0]); this.value=""; });
+$("h-upi").addEventListener("click",function(){ $("h-upifile").click(); });
+$("h-upifile").addEventListener("change",function(){ if(this.files[0]) uploadUpiQr(this.files[0]); this.value=""; });
+$("h-link").addEventListener("click",addVideoLink);
+$("h-thumbs").addEventListener("click",backfillThumbs);
 $("m-vfile").addEventListener("change",function(){ if(this.files[0]) addClip(this.files[0]); this.value=""; });
 function applySort(which, value){
   var bits=String(value).split(":");
