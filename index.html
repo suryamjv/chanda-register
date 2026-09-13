@@ -286,7 +286,7 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
   border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;display:none}
 .gal figure:hover .del{display:block}
 @media (hover:none){ .gal .del{display:block} }
-.lightbox{position:fixed;inset:0;z-index:120;background:rgba(10,9,8,.94);display:flex;align-items:center;
+.lightbox{position:fixed;inset:0;z-index:120;background:rgba(8,7,6,.99);display:flex;align-items:center;
   justify-content:center;flex-direction:column;gap:12px;padding:20px}
 .lightbox img{max-width:100%;max-height:78vh;border-radius:8px;object-fit:contain}
 .lightbox .lb-cap{color:#e6dcc6;font-size:13.5px;text-align:center;max-width:640px}
@@ -294,6 +294,39 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .lightbox .lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);
   border:0;color:#f0e6d2;font-size:26px;width:44px;height:60px;cursor:pointer;border-radius:8px}
 .lightbox .lb-prev{left:12px} .lightbox .lb-next{right:12px}
+.upi-qr img{cursor:zoom-in}
+.lightbox .zwrap{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+  width:100%;max-width:100vw;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+.lightbox .zimg{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;
+  transform-origin:center center;will-change:transform;cursor:zoom-in;display:block;
+  -webkit-user-drag:none;user-select:none}
+.lightbox .zimg.zoomed{cursor:grab}
+.lightbox .zimg.dragging{cursor:grabbing}
+.zbtns{display:flex;gap:8px;align-items:center}
+.zbtns button{background:rgba(255,255,255,.12);color:#e6dcc6;border:0;border-radius:9px;
+  padding:9px 15px;font-size:15px;line-height:1;cursor:pointer;min-width:46px;min-height:40px}
+.zbtns button:hover{background:rgba(255,255,255,.2)}
+.zhint{opacity:.5;font-size:12px}
+.taphint{margin:9px 2px 0;font-size:12.5px;color:var(--muted)}
+.vscrim{position:fixed;inset:0;z-index:115;background:rgba(10,9,8,.5);display:flex;
+  align-items:flex-end;justify-content:center}
+.vcard{background:var(--surface);width:100%;max-width:470px;border-radius:18px 18px 0 0;
+  box-shadow:0 -8px 30px rgba(0,0,0,.25);max-height:88dvh;display:flex;flex-direction:column}
+@media(min-width:721px){ .vscrim{align-items:center;padding:24px} .vcard{border-radius:16px} }
+.vcard-h{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:flex-start;gap:10px}
+.vcard-h .vname{font-size:19px;font-weight:600;line-height:1.25}
+.vcard-h .vsub{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.vcard-b{padding:14px 18px 4px;overflow-y:auto}
+.vrow{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.vrow:last-child{border-bottom:0}
+.vrow .vk{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;padding-top:2px;flex:0 0 auto}
+.vrow .vv{font-size:14.5px;text-align:right;color:var(--ink);line-height:1.45;min-width:0;word-break:break-word}
+.vrow .vv .sub{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.vcard-f{padding:13px 18px;border-top:1px solid var(--line);display:flex;gap:10px}
+.vcard-f .btn{flex:1}
+.vphones{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:4px}
 .upbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .upnote{font-size:12.5px;color:var(--muted)}
 .pub-table{min-width:420px}
@@ -467,6 +500,7 @@ footer p{margin:0}
         <th data-sort="prevAmount" style="text-align:right">Last year</th>
         <th data-sort="status">Status</th><th class="plain">Notes</th><th class="plain"></th>
       </tr></thead><tbody id="c-body"></tbody></table></div>
+      <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
       <p class="empty" id="c-empty" hidden>No contributors match that filter.</p>
     </section>
 
@@ -491,6 +525,7 @@ footer p{margin:0}
         <th data-sort="amount" style="text-align:right">Amount</th>
         <th data-sort="paidBy">Paid by</th><th class="plain">Mode</th><th class="plain"></th>
       </tr></thead><tbody id="e-body"></tbody></table></div>
+      <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
       <p class="empty" id="e-empty" hidden>No expenses match that search.</p>
     </section>
 
@@ -1627,6 +1662,16 @@ function renderUpi(hostId, upi){
       '<span class="upi-warn">Before paying, check the app shows this name. '+
       'Do not pay a QR sent to you privately.</span>'+
     '</div>';
+  var qimg=el.querySelector(".upi-qr img");
+  if(qimg){
+    qimg.setAttribute("role","button");
+    qimg.setAttribute("tabindex","0");
+    qimg.setAttribute("title","Tap to enlarge");
+    var openQr=function(){ openZoom(upi.qr, (upi.name?esc0(upi.name)+" — ":"")+"payment QR"); };
+    qimg.addEventListener("click",openQr);
+    qimg.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openQr(); } });
+  }
   var cp=el.querySelector("[data-upi-copy]");
   if(cp) cp.addEventListener("click",function(){
     var v=cp.getAttribute("data-upi-copy");
@@ -1663,20 +1708,211 @@ function uploadUpiQr(file){
   });
 }
 
+/* ---- pinch / double-tap zoom, shared by the QR popup and the gallery ---- */
+function esc0(v){ return String(v==null?"":v); }
+
+/* ---- read-only detail card: single tap on a row ---- */
+function openView(title, subtitle, rows, onEdit){
+  var sc=document.createElement("div");
+  sc.className="vscrim";
+  sc.innerHTML='<div class="vcard" role="dialog" aria-modal="true" aria-label="'+esc(title)+'">'+
+    '<div class="vcard-h"><div><span class="vname">'+esc(title)+'</span>'+
+      (subtitle?'<span class="vsub">'+subtitle+'</span>':'')+'</div>'+
+      '<button class="x" type="button" aria-label="Close">&times;</button></div>'+
+    '<div class="vcard-b">'+rows.filter(Boolean).map(function(r){
+      return '<div class="vrow"><span class="vk">'+esc(r[0])+'</span>'+
+             '<span class="vv">'+r[1]+'</span></div>'; }).join("")+'</div>'+
+    '<div class="vcard-f"><button class="btn sec" type="button" data-v="close">Close</button>'+
+      (onEdit?'<button class="btn" type="button" data-v="edit">Edit</button>':'')+'</div></div>';
+  function close(){ document.removeEventListener("keydown",key); sc.remove(); }
+  function key(e){ if(e.key==="Escape") close(); }
+  sc.querySelector(".vcard-h .x").onclick=close;
+  sc.querySelector('[data-v="close"]').onclick=close;
+  var ed=sc.querySelector('[data-v="edit"]');
+  if(ed) ed.onclick=function(){ close(); onEdit(); };
+  sc.addEventListener("click",function(e){ if(e.target===sc) close(); });
+  document.addEventListener("keydown",key);
+  document.body.appendChild(sc);
+}
+
+function viewContributor(c){
+  var st=paidState(c);
+  var pill = st==="paid"?'<span class="pill p-paid">Received</span>'
+           : st==="partial"?'<span class="pill p-part">Part paid</span>'
+           : st==="new"?'<span class="pill p-new">New</span>'
+           : '<span class="pill p-pend">Pending</span>';
+  var cur=num(c.amount), prev=num(c.prevAmount), due=num(c.promised), diff="";
+  if(cur!==null && prev!==null && prev>0){
+    var d=cur-prev;
+    diff='<span class="sub">'+(d>0?"+":"")+money(d)+' vs last year</span>';
+  }
+  var rows=[
+    ["Status", pill+(c.tag?'<span class="sub">'+esc(c.tag)+'</span>':'')],
+    ["This year", '<strong>'+money(c.amount)+'</strong>'+diff],
+    (due!==null?["Promised", money(due)+(outstanding(c)?'<span class="sub">'+money(outstanding(c))+' still due</span>':'')]:null),
+    (prev!==null?["Last year", money(c.prevAmount)]:null),
+    (c.collectedBy?["Collected by", esc(c.collectedBy)]:null),
+    (c.date?["Date", esc(fmtDate(c.date))]:null),
+    (c.phone?["Phone", '<div class="vphones">'+phoneLinks(c.phone)+'</div>']:null),
+    (c.notes?["Notes", esc(c.notes)]:null)
+  ];
+  var sub=[];
+  if(c.sno!=null) sub.push("No. "+esc(c.sno));
+  if(c.prevName) sub.push("last year: "+esc(c.prevName));
+  openView(c.name||"(no name)", sub.join(" &middot; "), rows, function(){ editContributor(c); });
+}
+
+function viewExpense(x){
+  var rows=[
+    ["Amount", '<strong>'+money(x.amount)+'</strong>'],
+    (x.item?["Item", esc(x.item)]:null),
+    (x.paidBy?["Paid by", esc(x.paidBy)]:null),
+    (x.mode?["Mode", esc(x.mode)]:null),
+    (x.date?["Date", esc(fmtDate(x.date))]:null),
+    (x.notes?["Notes", esc(x.notes)]:null)
+  ];
+  openView(x.category||"Expense", (x.sno!=null?"No. "+esc(x.sno):""), rows,
+           function(){ editExpense(x); });
+}
+
+/* one tap opens the detail card, two taps go straight to editing */
+function tapRouter(hostId, find, onView, onEdit){
+  var timer=null;
+  $(hostId).addEventListener("click",function(e){
+    if(e.target.closest("a")) return;                       /* call / WhatsApp links */
+    var tr=e.target.closest("tr[data-id]"); if(!tr) return;
+    var row=find(tr.dataset.id); if(!row) return;
+    if(e.target.closest("[data-edit]")){                    /* the Edit button */
+      if(timer){ clearTimeout(timer); timer=null; }
+      onEdit(row); return;
+    }
+    if(timer){ clearTimeout(timer); timer=null; onEdit(row); return; }
+    timer=setTimeout(function(){ timer=null; onView(row); }, 260);
+  });
+  $(hostId).addEventListener("dblclick",function(e){
+    if(e.target.closest("tr[data-id]")) e.preventDefault();  /* no text selection */
+  });
+}
+
+function attachZoom(box, img, opts){
+  opts=opts||{};
+  var sc=1, tx=0, ty=0, MIN=1, MAX=6;
+  var pts={}, pinch=null, drag=null, lastTap=0, lastXY=null;
+  function apply(){
+    img.style.transform="translate("+tx+"px,"+ty+"px) scale("+sc+")";
+    img.classList.toggle("zoomed", sc>1.01);
+    if(opts.onScale) opts.onScale(sc);
+  }
+  function centre(){ var r=img.getBoundingClientRect();
+    return {x:r.left+r.width/2-tx, y:r.top+r.height/2-ty}; }
+  function clamp(){
+    if(sc<=1.001){ tx=0; ty=0; return; }
+    var r=img.getBoundingClientRect();
+    var wrap=img.parentNode ? img.parentNode.getBoundingClientRect()
+                            : {width:window.innerWidth, height:window.innerHeight};
+    var mx=Math.max(0,(r.width-wrap.width)/2), my=Math.max(0,(r.height-wrap.height)/2);
+    tx=Math.max(-mx,Math.min(mx,tx)); ty=Math.max(-my,Math.min(my,ty));
+  }
+  function zoomTo(next, cx, cy){
+    next=Math.max(MIN,Math.min(MAX,next));
+    if(Math.abs(next-sc)<0.001) return;
+    var c=centre(), k=next/sc;
+    if(cx==null){ var r=img.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2; }
+    tx=tx+(cx-c.x-tx)*(1-k); ty=ty+(cy-c.y-ty)*(1-k);
+    sc=next; clamp(); apply();
+  }
+  function reset(){ sc=1; tx=0; ty=0; apply(); }
+  function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+  function mid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
+
+  img.addEventListener("pointerdown",function(e){
+    e.preventDefault();
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    try{ img.setPointerCapture(e.pointerId); }catch(_){}
+    var ids=Object.keys(pts);
+    if(ids.length===2){
+      var a=pts[ids[0]], b=pts[ids[1]];
+      pinch={d:dist(a,b), sc:sc, m:mid(a,b)}; drag=null;
+    } else if(ids.length===1 && sc>1.01){
+      drag={x:e.clientX,y:e.clientY,tx:tx,ty:ty}; img.classList.add("dragging");
+    }
+    lastXY={x:e.clientX,y:e.clientY};
+  });
+  img.addEventListener("pointermove",function(e){
+    if(!pts[e.pointerId]) return;
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    var ids=Object.keys(pts);
+    if(pinch && ids.length>=2){
+      var a=pts[ids[0]], b=pts[ids[1]], d=dist(a,b);
+      if(pinch.d>0) zoomTo(pinch.sc*(d/pinch.d), pinch.m.x, pinch.m.y);
+    } else if(drag){
+      tx=drag.tx+(e.clientX-drag.x); ty=drag.ty+(e.clientY-drag.y); clamp(); apply();
+    }
+  });
+  function up(e){
+    var had=pts[e.pointerId]; delete pts[e.pointerId];
+    if(Object.keys(pts).length<2) pinch=null;
+    if(drag){ drag=null; img.classList.remove("dragging"); }
+    if(!had) return;
+    var moved = lastXY ? Math.hypot(e.clientX-lastXY.x, e.clientY-lastXY.y) : 0;
+    if(moved>10) return;                                  /* a drag, not a tap */
+    var now=Date.now();
+    if(now-lastTap<320){ lastTap=0; zoomTo(sc>1.01?1:2.5, e.clientX, e.clientY); }
+    else lastTap=now;
+  }
+  img.addEventListener("pointerup",up);
+  img.addEventListener("pointercancel",up);
+  img.addEventListener("wheel",function(e){
+    e.preventDefault(); zoomTo(sc*(e.deltaY<0?1.12:1/1.12), e.clientX, e.clientY);
+  },{passive:false});
+  img.addEventListener("dragstart",function(e){ e.preventDefault(); });
+  apply();
+  return { zoomIn:function(){ zoomTo(sc*1.5); }, zoomOut:function(){ zoomTo(sc/1.5); },
+           reset:reset, scale:function(){ return sc; } };
+}
+
+function openZoom(src, caption){
+  var box=document.createElement("div");
+  box.className="lightbox";
+  box.innerHTML='<button class="lb-x" aria-label="Close">&times;</button>'+
+    '<div class="zwrap"><img class="zimg" src="'+esc(src)+'" alt="'+esc(caption||"Payment QR code")+'"></div>'+
+    (caption?'<div class="lb-cap">'+esc(caption)+'</div>':'')+
+    '<div class="zbtns"><button type="button" data-z="out" aria-label="Zoom out">&minus;</button>'+
+      '<button type="button" data-z="reset">Fit</button>'+
+      '<button type="button" data-z="in" aria-label="Zoom in">+</button></div>'+
+    '<div class="lb-cap zhint">Double-tap to zoom in or out &middot; drag to move &middot; pinch to scale</div>';
+  var img=box.querySelector(".zimg");
+  var z=attachZoom(box,img);
+  box.querySelector(".lb-x").onclick=close;
+  box.querySelector('[data-z="in"]').onclick=function(){ z.zoomIn(); };
+  box.querySelector('[data-z="out"]').onclick=function(){ z.zoomOut(); };
+  box.querySelector('[data-z="reset"]').onclick=function(){ z.reset(); };
+  function key(e){ if(e.key==="Escape") close(); }
+  function close(){ document.removeEventListener("keydown",key); box.remove(); }
+  box.addEventListener("click",function(e){
+    var bare = e.target===box || (e.target.classList && e.target.classList.contains("zwrap"));
+    if(bare && z.scale()<=1.01) close(); });
+  document.addEventListener("keydown",key);
+  document.body.appendChild(box);
+  return box;
+}
+
 function openLightbox(items, i){
   var photos=items.filter(function(m){ return m.type==="photo"; });
   var idx=Math.max(0, photos.indexOf(items[i]));
   var box=document.createElement("div");
   box.className="lightbox";
+  var zoom=null;
   function draw(){
     var m=photos[idx];
     box.innerHTML='<button class="lb-x" aria-label="Close">&times;</button>'+
       (photos.length>1?'<button class="lb-nav lb-prev" aria-label="Previous">&#8249;</button>':'')+
-      '<img src="'+esc(m.file)+'" alt="'+esc(m.caption||"")+'">'+
+      '<div class="zwrap"><img class="zimg" src="'+esc(m.file)+'" alt="'+esc(m.caption||"")+'"></div>'+
       (m.caption?'<div class="lb-cap">'+esc(m.caption)+'</div>':'')+
       (photos.length>1?'<button class="lb-nav lb-next" aria-label="Next">&#8250;</button>':'')+
       '<div class="lb-cap" style="opacity:.6">'+(idx+1)+' of '+photos.length+'</div>';
     box.querySelector(".lb-x").onclick=close;
+    zoom=attachZoom(box, box.querySelector(".zimg"));
     var pv=box.querySelector(".lb-prev"), nx=box.querySelector(".lb-next");
     if(pv) pv.onclick=function(e){ e.stopPropagation(); idx=(idx-1+photos.length)%photos.length; draw(); };
     if(nx) nx.onclick=function(e){ e.stopPropagation(); idx=(idx+1)%photos.length; draw(); };
@@ -1684,7 +1920,9 @@ function openLightbox(items, i){
   function key(e){ if(e.key==="Escape") close(); if(e.key==="ArrowLeft"){idx=(idx-1+photos.length)%photos.length;draw();}
                    if(e.key==="ArrowRight"){idx=(idx+1)%photos.length;draw();} }
   function close(){ document.removeEventListener("keydown",key); box.remove(); }
-  box.addEventListener("click",function(e){ if(e.target===box) close(); });
+  box.addEventListener("click",function(e){
+    var bare = e.target===box || (e.target.classList && e.target.classList.contains("zwrap"));
+    if(bare && (!zoom || zoom.scale()<=1.01)) close(); });
   document.addEventListener("keydown",key);
   draw(); document.body.appendChild(box);
 }
@@ -2252,16 +2490,12 @@ $("year-select").addEventListener("change",function(){
 $("target-save").addEventListener("click",function(){
   year().target=num($("target-input").value); markDirty(); renderHeadline(); toast("Target updated.");
 });
-$("c-body").addEventListener("click",function(e){
-  var b=e.target.closest("[data-edit]"); if(!b) return;
-  var id=b.closest("tr").dataset.id;
-  var c=contributors().filter(function(r){return r.id===id;})[0]; if(c) editContributor(c);
-});
-$("e-body").addEventListener("click",function(e){
-  var b=e.target.closest("[data-edit]"); if(!b) return;
-  var id=b.closest("tr").dataset.id;
-  var x=expenses().filter(function(r){return r.id===id;})[0]; if(x) editExpense(x);
-});
+tapRouter("c-body",
+  function(id){ return contributors().filter(function(r){return r.id===id;})[0]; },
+  viewContributor, editContributor);
+tapRouter("e-body",
+  function(id){ return expenses().filter(function(r){return r.id===id;})[0]; },
+  viewExpense, editExpense);
 document.querySelector("#c-table thead").addEventListener("click",function(e){
   var th=e.target.closest("th[data-sort]"); if(!th) return;
   var k=th.dataset.sort;
