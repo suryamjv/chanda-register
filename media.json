@@ -1,6 +1,6 @@
 {
  "v": 1,
- "updatedAt": "2026-09-13T13:17:02.858Z",
+ "updatedAt": "2026-09-13T14:05:17.075Z",
  "items": [
   {
    "id": "rmtwv0w5csfkso",
@@ -51,13 +51,14 @@
    "addedAt": "2026-09-11T11:16:47.542Z"
   },
   {
-   "id": "rmtzu8wxoosg8v",
+   "id": "rmtzvyxpklv04e",
    "year": 2025,
    "type": "idol",
-   "file": "media/2025/idol-rmtzu8wxoosg8v.jpg",
-   "thumb": "media/2025/idol-rmtzu8wxoosg8v-t.jpg",
+   "file": "media/2025/idol-rmtzvyxpklv04e.jpg",
+   "thumb": "media/2025/idol-rmtzvyxpklv04e-t.jpg",
    "caption": "",
-   "addedAt": "2026-09-13T13:17:02.843Z",
+   "sponsor": "Gadde Venkateshwarlu s/o G SrinivasaRao",
+   "addedAt": "2026-09-13T14:05:17.069Z",
    "by": "Surya"
   }
  ]
