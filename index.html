@@ -167,7 +167,7 @@ textarea{resize:vertical;min-height:62px}
 .btn.sec:hover{background:var(--surface-2);filter:none}
 .btn.danger{background:transparent;color:var(--danger);border-color:var(--line-strong)}
 .btn.danger-solid{background:var(--danger);color:#fff;border-color:transparent}
-.sheet-b .intro{margin:0;color:var(--ink-2);font-size:14px;line-height:1.55}
+.sheet-b .intro{margin:0;color:var(--ink-2);font-size:14px;line-height:1.55;white-space:pre-line}
 .sortwrap{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
 .pubhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .pubhead h3{margin:0}
@@ -512,6 +512,7 @@ footer p{margin:0}
     <button class="tab" id="tab-coll" role="tab" aria-selected="false" aria-controls="panel-coll" type="button">Collections</button>
     <button class="tab" id="tab-exp" role="tab" aria-selected="false" aria-controls="panel-exp" type="button">Expenses</button>
     <button class="tab" id="tab-lend" role="tab" aria-selected="false" aria-controls="panel-lend" type="button">Balance</button>
+    <button class="tab" id="tab-con" role="tab" aria-selected="false" aria-controls="panel-con" type="button">Contacts</button>
     <button class="tab" id="tab-media" role="tab" aria-selected="false" aria-controls="panel-media" type="button">Photos</button>
   </div></div>
 
@@ -651,6 +652,31 @@ footer p{margin:0}
       <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
       <p class="empty" id="l-empty" hidden>Nothing given out yet for this year.</p>
       <p class="cap" style="margin-top:12px">This page is for the team only. None of it appears on the public page.</p>
+    </section>
+
+    <section class="panel" id="panel-con" role="tabpanel" aria-labelledby="tab-con" hidden>
+      <div class="toolbar">
+        <input type="text" class="search" id="con-search" placeholder="Any words — name, trade, village, number…" aria-label="Search contacts">
+        <label class="sortwrap"><span>Sort</span>
+          <select id="con-sort" aria-label="Sort contacts">
+            <option value="name:1">Name A–Z</option>
+            <option value="name:-1">Name Z–A</option>
+            <option value="category:1">Category</option>
+            <option value="sno:1">Order added</option>
+          </select></label>
+        <button class="btn" id="con-add" type="button">Add a contact</button>
+        <button class="btn sec" id="con-import" type="button">Import from the register</button>
+        <button class="btn sec" id="con-export" type="button">Export Excel</button>
+      </div>
+      <div class="chips" id="con-chips" style="margin-bottom:12px"></div>
+      <div class="tablewrap"><table id="con-table"><thead><tr>
+        <th class="stripe plain"></th><th class="plain">#</th><th class="plain">Name</th>
+        <th class="plain">Phone</th><th class="plain">Category</th>
+        <th class="plain">What they do</th><th class="plain">Notes</th><th class="plain"></th>
+      </tr></thead><tbody id="con-body"></tbody></table></div>
+      <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
+      <p class="empty" id="con-empty" hidden>No contacts saved yet.</p>
+      <p class="cap" style="margin-top:12px">Team only. Contacts are shared across every year and never appear on the public page.</p>
     </section>
 
     <section class="panel" id="panel-media" role="tabpanel" aria-labelledby="tab-media" hidden>
@@ -816,6 +842,10 @@ var LS_CFG = "chanda.cfg.v1";
 var EXPENSE_HEADS = ["Idol (విగ్రహం)","Pooja & Priest","Tent & Decoration","Lighting & Electrical",
   "Sound & DJ","Annadanam (Food)","Annadanam (Cooking)","Prasadam","Police / Permissions",
   "Visarjan / Immersion","Miscellaneous"];
+var CONTACT_CATS = ["Tent & Decoration","Sound & DJ","Priest / Pooja","Idol maker",
+  "Cook / Annadanam","Lighting & Electrical","Transport / Tractor","Flowers & Prasadam",
+  "Police / Permissions","Committee","Collector","Photo handler","Contributor","Other"];
+var TEAM_CATS = ["Committee","Collector","Photo handler","Contributor"];
 var MODES = ["Cash","UPI","Cash / UPI","UPI / Cash","Bank transfer","In kind"];
 var TAGS = ["Matched","New Contributor","Pending Contact","Matched / Verify","Sponsor"];
 
@@ -961,7 +991,7 @@ var doc = null;            // {festivalName, activeYear, years:{ "2026": {target
 var remoteSha = null;      // GitHub blob sha of data.json, for safe updates
 var dirty = false;
 var cfg = loadCfg();
-var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1}, lSearch:"", pSearch:"" };
+var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1}, lSearch:"", pSearch:"", conSearch:"", conFilter:"all", conSort:{k:"name",dir:1} };
 
 function loadCfg(){ try{ return JSON.parse(localStorage.getItem(LS_CFG)||"{}"); }catch(e){ return {}; } }
 function saveCfg(){ try{ localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }catch(e){} }
@@ -1311,6 +1341,150 @@ function viewLending(l){
            function(){ editLending(l); });
 }
 
+/* =========================================================
+   Contacts — one shared book for every year. Team only.
+   ========================================================= */
+function contacts(){
+  if(!doc.contacts) doc.contacts=[];
+  return doc.contacts;
+}
+function isTeamCat(c){ return TEAM_CATS.indexOf(c)>=0; }
+function contactHaystack(k){
+  return [k.name, k.phone, phoneDigits(k.phone), k.category, k.role, k.notes, k.village, k.sno];
+}
+function sameNumber(a,b){
+  var x=phoneDigits(a), y=phoneDigits(b);
+  return !!x && x===y;
+}
+function contactFields(k){
+  return [
+    {k:"name",label:"Name",value:k.name||""},
+    {k:"phone",label:"Phone",value:k.phone||"",hint:"Ten digits is enough — 91 is added for WhatsApp"},
+    {k:"category",label:"Category",type:"select",options:CONTACT_CATS,value:k.category||"Other"},
+    {k:"role",label:"What they do",value:k.role||"",hint:"e.g. “Tent house, Murikipudi” or “Dappu team lead”"},
+    {k:"village",label:"Village / place",value:k.village||""},
+    {k:"notes",label:"Notes",type:"textarea",value:k.notes||""}
+  ];
+}
+function applyContact(k,v){
+  k.name=String(v.name||"").trim(); k.phone=String(v.phone||"").trim();
+  k.category=v.category||"Other"; k.role=v.role||""; k.village=v.village||""; k.notes=v.notes||"";
+}
+function editContact(k){
+  openSheet(k.name||"Contact", contactFields(k), function(v){
+    if(!String(v.name||"").trim()){ toast("Enter a name."); return false; }
+    var clash=contacts().filter(function(o){
+      return o!==k && sameNumber(o.phone, v.phone); })[0];
+    if(clash){ toast("That number is already saved under "+clash.name+"."); return false; }
+    applyContact(k,v); markDirty(); renderAll();
+  }, function(){
+    var arr=contacts(), i=arr.indexOf(k);
+    if(i>=0){ arr.splice(i,1); arr.forEach(function(r,n){ r.sno=n+1; }); }
+    markDirty(); renderAll(); toast("Contact removed.");
+  }, {deleteLabel:"Remove this contact"});
+}
+function addContact(){
+  var arr=contacts();
+  var k={id:uid("k"), sno:arr.length+1, name:"", phone:"", category:"Other",
+         role:"", village:"", notes:""};
+  openSheet("Add a contact", contactFields(k), function(v){
+    if(!String(v.name||"").trim()){ toast("Enter a name."); return false; }
+    var clash=arr.filter(function(o){ return sameNumber(o.phone, v.phone); })[0];
+    if(clash){ toast("That number is already saved under "+clash.name+"."); return false; }
+    applyContact(k,v); arr.push(k); markDirty(); renderAll();
+    toast(k.name+" saved.");
+  },null,{saveLabel:"Save"});
+}
+function viewContact(k){
+  var rows=[
+    (k.phone?["Phone",'<div class="vphones">'+phoneLinks(k.phone)+'</div>']:null),
+    ["Category", esc(k.category||"Other")],
+    (k.role?["What they do", esc(k.role)]:null),
+    (k.village?["Village", esc(k.village)]:null),
+    (k.notes?["Notes", esc(k.notes)]:null)
+  ];
+  openView(k.name||"(no name)", (k.sno!=null?"No. "+esc(k.sno):""), rows,
+           function(){ editContact(k); });
+}
+function renderContacts(){
+  var words=searchWords(ui.conSearch||"");
+  var all=contacts();
+  var rows=all.filter(function(k){
+    if(ui.conFilter==="team" && !isTeamCat(k.category)) return false;
+    if(ui.conFilter==="outside" && isTeamCat(k.category)) return false;
+    return matchesWords(contactHaystack(k), words);
+  });
+  rows=sortRows(rows, ui.conSort||{k:"name",dir:1});
+
+  var counts={all:all.length,
+    team:all.filter(function(k){ return isTeamCat(k.category); }).length,
+    outside:all.filter(function(k){ return !isTeamCat(k.category); }).length};
+  $("con-chips").innerHTML=[["all","Everyone"],["outside","Vendors & helpers"],["team","Our team"]]
+    .map(function(c){
+      return '<button class="chip" type="button" data-cf="'+c[0]+'" aria-pressed="'+
+        (ui.conFilter===c[0])+'">'+c[1]+' ('+counts[c[0]]+')</button>';
+    }).join("");
+  $("con-chips").querySelectorAll("[data-cf]").forEach(function(b){
+    b.addEventListener("click",function(){ ui.conFilter=b.dataset.cf; renderContacts(); });
+  });
+
+  $("con-empty").hidden = rows.length>0;
+  $("con-empty").textContent = all.length
+    ? "Nothing matches that." : "No contacts saved yet. Use “Add a contact”, or import the numbers already in the register.";
+  $("con-body").innerHTML = rows.map(function(k){
+    var team=isTeamCat(k.category);
+    return '<tr data-id="'+esc(k.id)+'">'+
+      '<td class="stripe" style="background:'+(team?"var(--part)":"var(--sexp)")+'"></td>'+
+      '<td class="sno num">'+esc(k.sno==null?"":k.sno)+'</td>'+
+      '<td><span class="nm">'+esc(k.name)+'</span>'+
+        (k.village?'<small>'+esc(k.village)+'</small>':'')+'</td>'+
+      '<td data-l="Phone">'+(k.phone?phoneLinks(k.phone):'<span class="meta">—</span>')+'</td>'+
+      '<td class="st" data-l="Category"><span class="pill '+(team?"p-part":"p-paid")+'">'+
+        esc(k.category||"Other")+'</span></td>'+
+      '<td data-l="What they do" style="font-size:13.5px;color:var(--ink-2)">'+esc(k.role||"")+'</td>'+
+      '<td class="nt" data-l="Notes" style="max-width:220px;color:var(--ink-2);font-size:13px">'+esc(k.notes||"")+'</td>'+
+      '<td><button class="rowbtn" data-edit="1" type="button">Edit</button></td></tr>';
+  }).join("");
+}
+/* pull in numbers already recorded elsewhere in the register */
+function scanForNumbers(){
+  var found=[], seen={};
+  function add(name, phone, category, role){
+    var d=phoneDigits(phone); if(!d || !String(name||"").trim()) return;
+    if(seen[d]) return;
+    if(contacts().some(function(k){ return sameNumber(k.phone, phone); })) return;
+    seen[d]=1;
+    found.push({name:String(name).trim(), phone:String(phone).trim(),
+                category:category, role:role||""});
+  }
+  Object.keys(doc.years||{}).sort().forEach(function(y){
+    var yr=doc.years[y];
+    (yr.contributors||[]).forEach(function(c){ add(c.name, c.phone, "Contributor", "On the "+y+" register"); });
+    (yr.lending||[]).forEach(function(l){ add(l.holder, l.phone, "Committee", "Held money in "+y); });
+  });
+  return found;
+}
+function importNumbers(){
+  var found=scanForNumbers();
+  if(!found.length){
+    toast("No new numbers to import — everything with a phone number is already saved.");
+    return;
+  }
+  var preview=found.slice(0,8).map(function(f){ return f.name+" · "+f.phone; }).join("\n");
+  openSheet("Import "+found.length+" number"+(found.length===1?"":"s")+"?", [], function(){
+    var arr=contacts();
+    found.forEach(function(f){
+      arr.push({id:uid("k"), sno:arr.length+1, name:f.name, phone:f.phone,
+                category:f.category, role:f.role, village:"", notes:""});
+    });
+    markDirty(); renderAll();
+    toast("Imported "+found.length+" contact"+(found.length===1?"":"s")+".");
+  }, null, {saveLabel:"Import "+found.length,
+    intro:"These numbers are already in the register but not in Contacts:\n\n"+preview+
+      (found.length>8 ? "\n…and "+(found.length-8)+" more" : "")+
+      "\n\nNothing already saved will be duplicated."});
+}
+
 function renderHeadline(){
   var coll=sumOf(contributors(),"amount"), exp=sumOf(expenses(),"amount"), bal=coll-exp;
   $("rf-coll").textContent=money(coll); $("rf-exp").textContent=money(exp); $("rf-bal").textContent=money(bal);
@@ -1564,7 +1738,7 @@ function renderAll(){
   $("lg-cur").textContent=y; $("lg-prev").textContent=py+" benchmark";
   $("chart1-cap").textContent="This year against the "+py+" ledger, top 12 by amount";
   $("foot").textContent = contributors().length+" contributors · "+expenses().length+" expense heads · "+y+" register";
-  renderLending(); renderSponsors();
+  renderLending(); renderSponsors(); renderContacts();
   if(!$("panel-media").hidden) renderMedia();
 }
 
@@ -1764,6 +1938,19 @@ function exportWorkbook(){
     var bytes=buildXlsx([{name:"Collections "+y,rows:cRows},{name:"Expenses",rows:eRows},{name:"Summary & Balance",rows:sRows}]);
     downloadBlob(bytes,"Chanda_"+y+".xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     toast("Workbook downloaded.");
+  }catch(err){ toast("Could not build the workbook."); }
+}
+function exportContacts(){
+  var rows=[["S.No","Name","Phone","Category","What they do","Village","Notes"]];
+  sortRows(contacts(),{k:"name",dir:1}).forEach(function(k,i){
+    rows.push([i+1,k.name,k.phone||"",k.category||"",k.role||"",k.village||"",k.notes||""]);
+  });
+  if(rows.length===1){ toast("No contacts to export yet."); return; }
+  try{
+    var bytes=buildXlsx([{name:"Contacts",rows:rows}]);
+    downloadBlob(bytes,"Chanda_Contacts.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    toast("Contacts downloaded.");
   }catch(err){ toast("Could not build the workbook."); }
 }
 function downloadBackup(){
@@ -3113,7 +3300,7 @@ function removeYear(y){
    ========================================================= */
 function tabTo(which){
   [["dash","panel-dash"],["coll","panel-coll"],["exp","panel-exp"],
-   ["lend","panel-lend"],["media","panel-media"]].forEach(function(p){
+   ["lend","panel-lend"],["con","panel-con"],["media","panel-media"]].forEach(function(p){
     var on=p[0]===which;
     $("tab-"+p[0]).setAttribute("aria-selected",on?"true":"false");
     $(p[1]).hidden=!on;
@@ -3200,6 +3387,18 @@ tapRouter("l-body",
 $("tab-lend").addEventListener("click",function(){ tabTo("lend"); renderLending(); });
 $("l-add").addEventListener("click",addLending);
 $("s-add").addEventListener("click",addSponsor);
+tapRouter("con-body",
+  function(id){ return contacts().filter(function(r){return r.id===id;})[0]; },
+  viewContact, editContact);
+$("tab-con").addEventListener("click",function(){ tabTo("con"); renderContacts(); });
+$("con-add").addEventListener("click",addContact);
+$("con-import").addEventListener("click",importNumbers);
+$("con-export").addEventListener("click",exportContacts);
+$("con-search").addEventListener("input",function(){ ui.conSearch=this.value; renderContacts(); });
+$("con-sort").addEventListener("change",function(){
+  var bits=String(this.value).split(":");
+  ui.conSort={k:bits[0], dir:Number(bits[1])||1}; renderContacts();
+});
 $("l-search").addEventListener("input",function(){ ui.lSearch=this.value; renderLending(); });
 $("pub-esearch").addEventListener("input",function(){ ui.pSearch=this.value; renderPubExpenses(); });
 $("l-open-save").addEventListener("click",function(){
