@@ -410,6 +410,37 @@ table.grid .delrow:hover{color:var(--bad,#a4342b)}
 .sponedit:last-child{border-bottom:0}
 .sponedit .n{font-size:14.5px;color:var(--ink)}
 .sponedit .w{font-size:12px;color:var(--muted)}
+.oibtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.honourboard{position:relative;overflow:hidden;
+  background:linear-gradient(180deg,var(--accent-soft) 0%,var(--surface) 46%);
+  border:1px solid var(--line-strong)}
+.honourboard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+  background:linear-gradient(90deg,var(--gold-hi),var(--gold),var(--gold-hi))}
+.hbhead{display:flex;flex-direction:column;align-items:center;gap:1px;text-align:center}
+.hbhead h3{margin:0}
+.hbte{font-size:15px;font-weight:600;color:var(--accent-ink);letter-spacing:.02em;line-height:1.4}
+.honourboard .cap{text-align:center;margin:5px auto 0;max-width:46ch}
+.hgroup{margin-top:20px}
+.hhead{display:flex;align-items:baseline;gap:8px;padding-bottom:7px;margin-bottom:11px;
+  border-bottom:1px solid var(--line)}
+.hhead .te{font-size:14px;font-weight:600;color:var(--accent-ink);line-height:1.4}
+.hhead .en{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:600}
+.hhead .cnt{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);
+  background:var(--surface-2);border-radius:20px;padding:2px 9px;line-height:1.5}
+.hgrid{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(212px,1fr))}
+.honour{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+.honour .med{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;font-size:12.5px;font-weight:700;
+  letter-spacing:.03em;color:var(--accent-ink);background:var(--accent-soft);
+  border:1px solid var(--gold)}
+.honour .hn{font-size:14.5px;font-weight:500;color:var(--ink);line-height:1.35;
+  overflow-wrap:anywhere}
+@media (max-width:720px){
+  .hgrid{grid-template-columns:1fr}
+  .honourboard .cap{max-width:none}
+}
 .idolspon{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:5px;
   font-size:13px;color:var(--ink-2);font-weight:500;text-align:center;line-height:1.35}
 .idolspon .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
@@ -719,7 +750,8 @@ footer p{margin:0}
         <div class="pubhead">
           <div><h3>Where the carried-in money came from</h3>
           <p class="cap" id="oi-cap"></p></div>
-          <button class="btn" id="oi-add" type="button">Add who handed it over</button>
+          <div class="oibtns"><button class="btn sec" id="oi-team" type="button" hidden>A line for each collector</button>
+          <button class="btn" id="oi-add" type="button">Add who handed it over</button></div>
         </div>
         <div id="oi-list" style="margin-top:12px"></div>
       </div>
@@ -868,8 +900,9 @@ footer p{margin:0}
       </div>
       <div id="h-gal" style="margin-top:12px"></div>
     </section>
-    <section class="card sponcard" id="pub-spon" hidden>
-      <h3>With thanks</h3>
+    <section class="card sponcard honourboard" id="pub-spon" hidden>
+      <div class="hbhead"><span class="hbte">కృతజ్ఞతలు</span>
+        <h3>With thanks</h3></div>
       <p class="cap" id="pub-spon-cap"></p>
       <div id="pub-spon-list"></div>
     </section>
@@ -1408,6 +1441,18 @@ function addOpeningRow(){
        left<0 ? ". The lines already add up to "+money(openingListed())+", which is more than that." :
                 ". Every rupee of it is already listed.")});
 }
+function addTeamOpeningRows(){
+  var arr=openingRows(), made=0;
+  collectorList().forEach(function(name){
+    if(openingByName(name).length) return;          /* already has a line */
+    arr.push({id:uid("oi"), sno:arr.length+1, name:name, amount:null,
+              mode:"", date:"", notes:""});
+    made++;
+  });
+  if(!made){ toast("Every collector already has a line."); return; }
+  markDirty(); renderAll();
+  toast(made+" blank line"+(made===1?"":"s")+" added \u2014 tap each one to put in the amount and Cash or UPI.");
+}
 function renderOpeningRows(){
   var host=$("oi-list"); if(!host) return;
   var arr=openingRows().slice().sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
@@ -1420,9 +1465,13 @@ function renderOpeningRows(){
                 : " — it all adds up.")
       : "Nothing listed yet, so none of it counts towards Cash or UPI.")
     : "Nothing carried in from "+(ui.year-1)+".";
+  var missing=collectorList().filter(function(n){ return !openingByName(n).length; }).length;
+  $("oi-team").hidden = !total || !missing;
   if(!arr.length){
     host.innerHTML='<p class="empty" style="margin:0">Nobody added yet. '+
-      'Use “Add who handed it over” so the carried money shows as cash or UPI.</p>';
+      (total ? 'Use “Add who handed it over” — or “A line for each collector” '+
+               'to start one per person — so the carried money shows as cash or UPI.'
+             : 'There is nothing carried in from '+(ui.year-1)+' to account for.')+'</p>';
     return;
   }
   host.innerHTML=arr.map(function(r){
@@ -3474,21 +3523,74 @@ function publicSponsors(y){
   }
   return out;
 }
+/* the honour board: sponsors grouped by what they paid for */
+var SPON_TE = {
+  "Idol (విగ్రహం)":["విగ్రహం","Idol"],
+  "Annadanam (Food)":["అన్నదానం","Annadanam"],
+  "Annadanam (Cooking)":["అన్నదానం వంట","Cooking"],
+  "Prasadam":["ప్రసాదం","Prasadam"],
+  "Pooja & Priest":["పూజ","Pooja & Priest"],
+  "Tent & Decoration":["మండపం","Tent & Decoration"],
+  "Lighting & Electrical":["దీపాలంకరణ","Lighting"],
+  "Sound & DJ":["స౗ండ్ & DJ","Sound & DJ"],
+  "Visarjan / Immersion":["నిమజ్జనం","Visarjan"],
+  "Police / Permissions":["అనుమతులు","Permissions"],
+  "Miscellaneous":["ఇతరములు","Other"]
+};
+var SPON_ORDER = ["Idol (విగ్రహం)","Annadanam (Food)","Annadanam (Cooking)",
+  "Prasadam","Pooja & Priest","Tent & Decoration","Lighting & Electrical","Sound & DJ",
+  "Visarjan / Immersion","Police / Permissions","Miscellaneous"];
+function sponLabel(item){
+  var k=String(item||"").trim();
+  if(SPON_TE[k]) return SPON_TE[k];
+  if(!k) return ["సహకారం","Given in kind"];
+  return ["", k];
+}
+function sponInitials(name){
+  var w=String(name||"").trim().split(/\s+/).filter(Boolean);
+  if(!w.length) return "\u2022";
+  var out=w[0].charAt(0);
+  if(w.length>1) out+=w[w.length-1].charAt(0);
+  return out.toUpperCase();
+}
 function renderPublicSponsors(y){
   var card=$("pub-spon"), list=$("pub-spon-list");
   if(!card||!list) return 0;
   var arr=publicSponsors(y);
   if(!arr.length){ card.hidden=true; list.innerHTML=""; return 0; }
   card.hidden=false;
-  $("pub-spon-cap").textContent="Paid for by these people themselves in "+y+
-    " — not from the chanda collection";
-  list.innerHTML='<div class="sponlist">'+arr.map(function(sp){
-    return '<div class="sponrow"><span class="n">'+esc(sp.name)+'</span>'+
-      (sp.item?'<span class="w">'+esc(sp.item)+'</span>':'')+'</div>';
-  }).join("")+'</div>';
+  $("pub-spon-cap").textContent = arr.length+(arr.length===1?" person":" people")+
+    " paid for these themselves in "+y+" \u2014 not out of the chanda collection.";
+  var groups={}, keys=[];
+  arr.forEach(function(sp){
+    var k=String(sp.item||"").trim();
+    if(!groups[k]){ groups[k]=[]; keys.push(k); }
+    groups[k].push(sp);
+  });
+  function rank(k){
+    var i=SPON_ORDER.indexOf(k);
+    if(i>=0) return i;
+    return k ? SPON_ORDER.length : SPON_ORDER.length+1;   /* unlabelled goes last */
+  }
+  keys.sort(function(a,b){
+    var d=rank(a)-rank(b); if(d) return d;
+    return a<b?-1:a>b?1:0;
+  });
+  list.innerHTML=keys.map(function(k){
+    var lab=sponLabel(k), n=groups[k].length;
+    return '<div class="hgroup">'+
+      '<div class="hhead">'+
+        (lab[0]?'<span class="te">'+esc(lab[0])+'</span>':'')+
+        '<span class="en">'+esc(lab[1])+'</span>'+
+        '<span class="cnt">'+n+'</span></div>'+
+      '<div class="hgrid">'+groups[k].map(function(sp){
+        return '<div class="honour"><span class="med" aria-hidden="true">'+
+          esc(sponInitials(sp.name))+'</span>'+
+          '<span class="hn">'+esc(sp.name)+'</span></div>';
+      }).join("")+'</div></div>';
+  }).join("");
   return arr.length;
 }
-
 function renderIdolWall(){
   var wrap=$("pub-idols"), grid=$("pub-idolgrid");
   if(!wrap||!grid) return 0;
@@ -4590,6 +4692,7 @@ tapRouter("l-body",
 $("tab-lend").addEventListener("click",function(){ tabTo("lend"); renderLending(); });
 $("l-add").addEventListener("click",addLending);
 $("oi-add").addEventListener("click",addOpeningRow);
+$("oi-team").addEventListener("click",addTeamOpeningRows);
 $("s-add").addEventListener("click",addSponsor);
 tapRouter("con-body",
   function(id){ return contacts().filter(function(r){return r.id===id;})[0]; },
