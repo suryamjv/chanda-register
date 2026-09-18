@@ -750,7 +750,8 @@ footer p{margin:0}
         <div class="pubhead">
           <div><h3>Where the carried-in money came from</h3>
           <p class="cap" id="oi-cap"></p></div>
-          <div class="oibtns"><button class="btn sec" id="oi-team" type="button" hidden>A line for each collector</button>
+          <div class="oibtns"><button class="btn sec" id="oi-ret" type="button" hidden>Bring in last year’s returns</button>
+          <button class="btn sec" id="oi-team" type="button" hidden>A line for each collector</button>
           <button class="btn" id="oi-add" type="button">Add who handed it over</button></div>
         </div>
         <div id="oi-list" style="margin-top:12px"></div>
@@ -1441,6 +1442,32 @@ function addOpeningRow(){
        left<0 ? ". The lines already add up to "+money(openingListed())+", which is more than that." :
                 ". Every rupee of it is already listed.")});
 }
+function lastYearReturns(){
+  var prev=doc.years[String(ui.year-1)];
+  if(!prev) return [];
+  return (prev.lending||[]).filter(function(l){ return (num(l.returned)||0)>0; });
+}
+function pendingReturns(){
+  var have={};
+  openingRows().forEach(function(r){ if(r.from) have[r.from]=1; });
+  return lastYearReturns().filter(function(l){ return !have[l.id]; });
+}
+function importReturns(){
+  var arr=openingRows(), todo=pendingReturns(), made=0, blind=0;
+  todo.forEach(function(l){
+    var who=String(l.takenBy||"").trim();
+    if(!who) blind++;
+    arr.push({id:uid("oi"), sno:arr.length+1,
+      name:who || String(l.holder||"").trim(),
+      amount:num(l.returned), mode:l.returnMode||"", date:l.returnedDate||"",
+      notes:"Came back from "+(l.holder||"a holder"), from:l.id});
+    made++;
+  });
+  if(!made){ toast("Nothing left to bring in."); return; }
+  markDirty(); renderAll();
+  toast(made+" return"+(made===1?"":"s")+" brought in"+
+    (blind ? " \u2014 "+blind+" still needs who took it and whether it was cash or UPI." : "."));
+}
 function addTeamOpeningRows(){
   var arr=openingRows(), made=0;
   collectorList().forEach(function(name){
@@ -1467,6 +1494,10 @@ function renderOpeningRows(){
     : "Nothing carried in from "+(ui.year-1)+".";
   var missing=collectorList().filter(function(n){ return !openingByName(n).length; }).length;
   $("oi-team").hidden = !total || !missing;
+  var pend=pendingReturns();
+  $("oi-ret").hidden = !pend.length;
+  $("oi-ret").textContent = "Bring in "+pend.length+" return"+(pend.length===1?"":"s")+
+    " from "+(ui.year-1);
   if(!arr.length){
     host.innerHTML='<p class="empty" style="margin:0">Nobody added yet. '+
       (total ? 'Use “Add who handed it over” — or “A line for each collector” '+
@@ -1560,7 +1591,11 @@ function renderLending(){
       '<td class="amt num" data-l="Given"><strong>'+money(l.amount)+'</strong>'+extra+'</td>'+
       '<td class="amt num" data-l="Agreed back" style="color:var(--muted)">'+money(l.agreed)+'</td>'+
       '<td class="amt num" data-l="Returned"><strong>'+money(l.returned)+'</strong>'+
-        (l.returnedDate?'<span class="meta">'+esc(fmtDate(l.returnedDate))+'</span>':'')+'</td>'+
+        (l.returnedDate?'<span class="meta">'+esc(fmtDate(l.returnedDate))+'</span>':'')+
+        (num(l.returned)!==null
+          ? '<span class="meta">'+(l.takenBy?'collected by '+esc(l.takenBy):'collected by whom?')+
+            (l.returnMode?' \u00b7 '+esc(l.returnMode):' \u00b7 cash or UPI?')+'</span>'
+          : '')+'</td>'+
       '<td class="st">'+pill+'</td>'+
       '<td class="nt" data-l="Notes" style="max-width:220px;color:var(--ink-2);font-size:13px">'+esc(l.notes||"")+'</td>'+
       '<td><button class="rowbtn" data-edit="1" type="button">Edit</button></td></tr>';
@@ -1579,11 +1614,17 @@ function lendFields(l){
     {k:"returned",label:"Actually returned",type:"number",value:l.returned==null?"":l.returned,
      hint:"Leave blank until the money is back in hand"},
     {k:"returnedDate",label:"Date returned",type:"date",value:l.returnedDate||""},
+    {k:"takenBy",label:"Collected by",type:"select",allowBlank:true,
+     options:collectorOptions(l.takenBy),value:l.takenBy||"",
+     hint:"Which team member took the money back \u2014 it is what feeds next year\u2019s Cash and UPI"},
+    {k:"returnMode",label:"Cash or UPI",type:"select",allowBlank:true,options:PAY_MODES,
+     value:l.returnMode||""},
     {k:"notes",label:"Notes",type:"textarea",value:l.notes||""}
   ];
 }
 function applyLend(l,v){
   l.holder=fromOption(v.holder); l.phone=v.phone; l.notes=v.notes;
+  l.takenBy=fromOption(v.takenBy); l.returnMode=v.returnMode||"";
   l.amount=num(v.amount); l.agreed=num(v.agreed); l.returned=num(v.returned);
   l.given=v.given||""; l.dueDate=v.dueDate||""; l.returnedDate=v.returnedDate||"";
   if(l.returned!==null && !l.returnedDate) l.returnedDate=todayISO();
@@ -1890,6 +1931,8 @@ var TB_SETS = {
       {k:"dueDate",t:"Due",    type:"date"},
       {k:"returned",t:"Returned", type:"number"},
       {k:"returnedDate",t:"Date returned", type:"date"},
+      {k:"takenBy", t:"Collected by", type:"coll"},
+      {k:"returnMode",t:"Cash/UPI", type:"enum", opts:function(){ return PAY_MODES; }},
       {k:"notes",  t:"Notes",  type:"text"}
     ],
     hay:lendHaystack,
@@ -2407,7 +2450,8 @@ function expenseHaystack(e){
 }
 function lendHaystack(l){
   return [l.holder, l.notes, l.phone, l.sno, l.amount, l.agreed, l.returned,
-          l.given, fmtDate(l.given), l.dueDate, fmtDate(l.dueDate)];
+          l.given, fmtDate(l.given), l.dueDate, fmtDate(l.dueDate),
+          l.takenBy, l.returnMode];
 }
 
 function sortRows(rows,sort){
@@ -4693,6 +4737,7 @@ $("tab-lend").addEventListener("click",function(){ tabTo("lend"); renderLending(
 $("l-add").addEventListener("click",addLending);
 $("oi-add").addEventListener("click",addOpeningRow);
 $("oi-team").addEventListener("click",addTeamOpeningRows);
+$("oi-ret").addEventListener("click",importReturns);
 $("s-add").addEventListener("click",addSponsor);
 tapRouter("con-body",
   function(id){ return contacts().filter(function(r){return r.id===id;})[0]; },
