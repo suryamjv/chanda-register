@@ -1,6 +1,6 @@
 {
  "v": 1,
- "updatedAt": "2026-09-18T13:53:23.796Z",
+ "updatedAt": "2026-09-18T14:26:45.754Z",
  "items": [
   {
    "id": "rmtwv0w5csfkso",
@@ -92,6 +92,16 @@
    "caption": "",
    "sponsor": "Gunjipalli Naveen Kumar s/o G Veerayya",
    "addedAt": "2026-09-18T13:53:23.786Z",
+   "by": "Surya"
+  },
+  {
+   "id": "rmu71xnl60ieuu",
+   "year": 2026,
+   "type": "clip",
+   "file": "media/2026/rmu71xnl60ieuu.mp4",
+   "caption": "",
+   "addedAt": "2026-09-18T14:26:45.744Z",
+   "size": 19884317,
    "by": "Surya"
   }
  ]
