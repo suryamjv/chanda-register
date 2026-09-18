@@ -410,6 +410,23 @@ table.grid .delrow:hover{color:var(--bad,#a4342b)}
 .sponedit:last-child{border-bottom:0}
 .sponedit .n{font-size:14.5px;color:var(--ink)}
 .sponedit .w{font-size:12px;color:var(--muted)}
+/* a clip shaped quite differently from its frame is shown whole, not cropped */
+.sumstrip{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.sumstrip .s{display:flex;flex-direction:column;gap:1px;padding:8px 13px;border-radius:11px;
+  background:var(--surface-2);border:1px solid var(--line);min-width:112px}
+.sumstrip .s .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;line-height:1.5}
+.sumstrip .s .v{font-family:var(--mono,ui-monospace,monospace);font-size:16px;font-weight:600;
+  color:var(--ink);line-height:1.35}
+.sumstrip .s.good .v{color:var(--good)} .sumstrip .s.wait .v{color:var(--wait)}
+.sumstrip .s.lo .v{color:var(--danger)}
+.sumstrip .note{flex:1 1 100%;font-size:12px;color:var(--muted);line-height:1.5;margin:1px 0 0}
+@media (max-width:720px){
+  .sumstrip{gap:7px}
+  .sumstrip .s{flex:1 1 calc(50% - 4px);min-width:0;padding:7px 11px}
+  .sumstrip .s .v{font-size:15px}
+}
+.fitwhole{object-fit:contain !important;background:#100c08}
 .oibtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .honourboard{position:relative;overflow:hidden;
   background:linear-gradient(180deg,var(--accent-soft) 0%,var(--surface) 46%);
@@ -673,6 +690,9 @@ footer p{margin:0}
       <div class="toolbar">
         <input type="text" class="search" id="c-search" placeholder="Any words — this year’s or last year’s name, collector, note, amount…" aria-label="Search contributors">
         <div class="chips" id="c-filters"></div>
+      </div>
+      <div class="sumstrip" id="c-sum"></div>
+      <div class="toolbar toolbar-rest">
         <label class="sortwrap"><span>Sort</span>
           <select id="c-sort" aria-label="Sort contributors">
             <option value="sno:1">Register order</option>
@@ -714,6 +734,7 @@ footer p{margin:0}
         <button class="btn" id="e-add" type="button">Add expense</button>
         <button class="btn sec" id="e-export" type="button">Export Excel</button>
       </div>
+      <div class="sumstrip" id="e-sum"></div>
       <div class="tablewrap"><table id="e-table"><thead><tr>
         <th class="stripe plain"></th><th class="plain">#</th>
         <th data-sort="category">Head</th><th class="plain">Item / description</th>
@@ -813,6 +834,7 @@ footer p{margin:0}
         <button class="btn sec" id="tb-export" type="button">Export Excel</button>
       </div>
       <p class="cap" id="tb-note"></p>
+      <div class="sumstrip" id="tb-sum"></div>
       <div class="tablewrap gridwrap"><table id="tb-table" class="grid"><thead><tr id="tb-head"></tr></thead>
         <tbody id="tb-body"></tbody></table></div>
       <p class="empty" id="tb-empty" hidden>Nothing here yet.</p>
@@ -1999,6 +2021,16 @@ function renderTable(){
       ? set.label+" for "+ui.year+" — changes save as you make them."
       : set.label+" are shared across every year — changes save as you make them.")+
     " None of it is on the public page.";
+  (function(){
+    var money_cols=cols.filter(function(c){ return c.type==="number"; });
+    var cells=money_cols.slice(0,3).map(function(c){
+      return {k:c.t, v:money(rows.reduce(function(t,r){ return t+(num(r[c.k])||0); },0))};
+    });
+    cells.unshift({k:"Rows", v:String(rows.length)});
+    if(set.perYear) cells.push({k:"In hand", v:money(cashInHand()),
+      tone: cashInHand()<0? "lo":"good"});
+    sumStrip("tb-sum", cells, null, filterNote(rows.length, set.get().length, "rows"));
+  })();
   $("tb-head").innerHTML = cols.map(function(c){
     return '<th'+(c.w?' style="width:'+c.w+'px"':'')+'>'+esc(c.t)+'</th>';
   }).join("")+'<th class="delcell"></th>';
@@ -2807,6 +2839,19 @@ function tidyCollectors(){
       "Check the two Anils carefully if you have two different people."});
 }
 
+/* A running total on each tab, so you never have to go back to the Dashboard.
+   It follows whatever is filtered or searched, and says so when it does. */
+function sumStrip(hostId, cells, filtered, note){
+  var host=$(hostId); if(!host) return;
+  host.innerHTML = cells.map(function(c){
+    return '<div class="s'+(c.tone?' '+c.tone:'')+'"><span class="k">'+esc(c.k)+'</span>'+
+           '<span class="v">'+esc(c.v)+'</span></div>';
+  }).join("") + (note ? '<p class="note">'+esc(note)+'</p>' : '');
+}
+function filterNote(shown, total, what){
+  return shown===total ? "" :
+    "Showing "+shown+" of "+total+" "+what+" \u2014 these figures are for what is on screen.";
+}
 function renderContributors(){
   var words=searchWords(ui.cSearch);
   var rows=contributors().filter(function(c){
@@ -2815,6 +2860,24 @@ function renderContributors(){
   });
   rows=sortRows(rows,ui.cSort);
   renderFilterChips();
+  (function(){
+    var got=sumOf(rows,"amount");
+    var due=rows.reduce(function(t,c){ return t+outstanding(c); },0);
+    var cash=0, upi=0, nomode=0;
+    rows.forEach(function(c){
+      var amt=num(c.amount)||0; if(!amt) return;
+      var m=String(c.mode||"").toLowerCase();
+      if(m==="cash") cash+=amt; else if(m==="upi") upi+=amt; else nomode+=amt;
+    });
+    sumStrip("c-sum",[
+      {k:"Collected", v:money(got)},
+      {k:"Still due", v:money(due), tone: due? "wait":""},
+      {k:"Cash", v:money(cash)},
+      {k:"UPI", v:money(upi)}
+    ], null, [filterNote(rows.length, contributors().length, "names"),
+        nomode? money(nomode)+" of it has no Cash or UPI set." : ""
+      ].filter(Boolean).join(" "));
+  })();
   $("c-empty").hidden = rows.length>0;
   $("c-body").innerHTML = rows.map(function(c){
     var st=paidState(c);
@@ -2855,6 +2918,19 @@ function renderExpenses(){
     return matchesWords(expenseHaystack(e), words);
   });
   rows=sortRows(rows,ui.eSort);
+  (function(){
+    var spent=sumOf(rows,"amount");
+    var unpriced=rows.filter(function(e){ return num(e.amount)===null; }).length;
+    var hand=cashInHand();
+    sumStrip("e-sum",[
+      {k:"Spent", v:money(spent)},
+      {k:"Left in hand", v:money(hand), tone: hand<0? "lo":"good"},
+      {k:"Collected "+ui.year, v:money(sumOf(contributors(),"amount"))},
+      {k:"Carried in", v:money(opening())}
+    ], null, [filterNote(rows.length, expenses().length, "entries"),
+        unpriced? unpriced+(unpriced===1?" entry has":" entries have")+" no amount yet." : ""
+      ].filter(Boolean).join(" "));
+  })();
   $("e-empty").hidden = rows.length>0;
   $("e-body").innerHTML = rows.map(function(e){
     return '<tr data-id="'+esc(e.id)+'">'+
@@ -3301,6 +3377,21 @@ function videoHost(url){
   if(/facebook\.|fb\.watch/.test(u)) return "Facebook";
   return "Video";
 }
+/* A portrait reel frame crops a landscape clip down to a sliver, which reads as
+   the wrong video or no video at all. When the clip and its frame are shaped too
+   differently, show the whole frame instead of filling the box. */
+function fitVideo(v){
+  function apply(){
+    var box=v.parentElement;
+    if(!box || !v.videoWidth || !v.videoHeight) return;
+    var r=box.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    var off=Math.abs(Math.log((v.videoWidth/v.videoHeight)/(r.width/r.height)));
+    v.classList.toggle("fitwhole", off>0.5);   /* only a severe mismatch, not a mild one */
+  }
+  if(v.readyState>=1) apply();
+  v.addEventListener("loadedmetadata", apply);
+}
 function renderGallery(hostId, y, editable){
   var host=$(hostId); if(!host) return 0;
   var items=mediaFor(y).filter(function(m){ return editable || m.type!=="idol"; });
@@ -3745,6 +3836,7 @@ function renderReels(y){
           '<span>Tap to play &middot; '+mb.toFixed(0)+' MB</span></button>':'')+
         controlsHtml();
       var v=el.querySelector("video");
+      fitVideo(v);
       if(!solo) v.addEventListener("ended",function(){ advance(slot); });
       wireControls(el, {kind:"clip", video:v, muted:true, playing:!heavy});
       if(heavy){
