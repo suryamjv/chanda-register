@@ -313,6 +313,30 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .zhint{opacity:.5;font-size:12px}
 .taphint{margin:9px 2px 0;font-size:12.5px;color:var(--muted)}
 .chip .cnt{font-weight:600;opacity:.75;margin-left:2px}
+.gridwrap{max-width:100%}
+table.grid{min-width:900px;font-size:13.5px}
+table.grid th{white-space:nowrap;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;padding:9px 10px;text-align:left;border-bottom:1px solid var(--line-strong)}
+table.grid td{padding:0;border-bottom:1px solid var(--line);vertical-align:middle}
+table.grid td .cell{display:block;padding:9px 10px;min-height:19px;cursor:text;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+table.grid td .cell:hover{background:var(--accent-soft,rgba(210,164,60,.12))}
+table.grid td .cell:focus{outline:2px solid var(--accent-ink,#8a5f16);outline-offset:-2px}
+table.grid td.num .cell{text-align:right;font-family:var(--mono,ui-monospace,monospace)}
+table.grid td.ro .cell{cursor:default;color:var(--muted)}
+table.grid td.ro .cell:hover{background:none}
+table.grid input,table.grid select{width:100%;min-width:90px;padding:7px 8px;font-size:13.5px;
+  border-radius:6px;box-sizing:border-box}
+table.grid td.saved{animation:cellsaved 1.1s ease-out 1}
+@keyframes cellsaved{0%{background:rgba(74,154,96,.34)}100%{background:transparent}}
+table.grid .delcell{width:38px}
+table.grid .delrow{background:none;border:0;color:var(--muted);font-size:17px;cursor:pointer;
+  padding:6px 10px;line-height:1}
+table.grid .delrow:hover{color:var(--bad,#a4342b)}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--accent-ink,#8a5f16);
+  text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.duphint{display:block}
+.duphint.warn{color:var(--part);font-weight:500}
 .reeltap{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:9px;border:0;cursor:pointer;color:#f0e6d2;font-size:12.5px;
   background:linear-gradient(180deg,rgba(18,13,8,.55),rgba(18,13,8,.82))}
@@ -328,6 +352,8 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .addrow{display:flex;gap:8px;margin-top:14px}
 .addrow input{flex:1;min-width:0}
 .tile.carry{border-left:3px solid var(--part)}
+.tile.cash{border-left:3px solid var(--good,#4a9a60)}
+.tile.upi{border-left:3px solid var(--s26,#d2662c)}
 .tile.carry.empty-tile .v{color:var(--muted);font-weight:500}
 .collt tr.totalrow td{border-top:2px solid var(--line-strong);background:var(--surface-2,rgba(0,0,0,.02))}
 .collt .meta{display:block;font-size:11.5px;color:var(--muted)}
@@ -462,6 +488,21 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
   #pub tbody tr{padding-left:14px}
   #pub tbody td.it{margin-top:1px}
   .delta,.meta{display:block}
+  /* the Table tab is a spreadsheet — it stays a table and scrolls inside its own box */
+  .gridwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);
+    background:var(--surface);box-shadow:var(--shadow);max-width:100%}
+  table.grid{display:table;min-width:900px;width:auto}
+  table.grid thead{display:table-header-group}
+  table.grid tbody{display:table-row-group}
+  table.grid tbody tr{display:table-row;margin:0;padding:0;border:0;border-radius:0;
+    box-shadow:none;background:transparent;overflow:visible}
+  table.grid tbody td{display:table-cell;border-bottom:1px solid var(--line);
+    padding:0;max-width:240px!important}
+  table.grid tbody td::before{content:none!important}
+  table.grid tbody td:empty{display:table-cell}
+  table.grid td.sno{position:static;right:auto;top:auto;font-size:13.5px}
+  table.grid td.amt,table.grid td.num{text-align:right}
+  table.grid tbody td:last-child{margin-top:0}
 }
 
 .scrim{position:fixed;inset:0;background:rgba(25,15,12,.44);z-index:60;display:flex;justify-content:flex-end}
@@ -520,6 +561,8 @@ footer p{margin:0}
       <button class="ghost" id="btn-settings" type="button">Settings</button>
       <div class="rail-figs">
         <div class="rfig" id="rf-carry-wrap" hidden><span class="k">Carried in</span><span class="v" id="rf-carry">₹0</span></div>
+        <div class="rfig" id="rf-cash-wrap" hidden><span class="k">Cash</span><span class="v" id="rf-cash">₹0</span></div>
+        <div class="rfig" id="rf-upi-wrap" hidden><span class="k">UPI</span><span class="v" id="rf-upi">₹0</span></div>
         <div class="rfig"><span class="k">Collected</span><span class="v" id="rf-coll">₹0</span></div>
         <div class="rfig"><span class="k">Spent</span><span class="v" id="rf-exp">₹0</span></div>
         <div class="rfig"><span class="k">In hand</span><span class="v" id="rf-bal">₹0</span></div>
@@ -533,6 +576,7 @@ footer p{margin:0}
     <button class="tab" id="tab-exp" role="tab" aria-selected="false" aria-controls="panel-exp" type="button">Expenses</button>
     <button class="tab" id="tab-lend" role="tab" aria-selected="false" aria-controls="panel-lend" type="button">Balance</button>
     <button class="tab" id="tab-con" role="tab" aria-selected="false" aria-controls="panel-con" type="button">Contacts</button>
+    <button class="tab" id="tab-table" role="tab" aria-selected="false" aria-controls="panel-table" type="button">Table</button>
     <button class="tab" id="tab-media" role="tab" aria-selected="false" aria-controls="panel-media" type="button">Photos</button>
   </div></div>
 
@@ -550,7 +594,10 @@ footer p{margin:0}
         <div class="card tile lead"><span class="k">Collected <span id="d-y1"></span></span><span class="v" id="d-coll">₹0</span><span class="d" id="d-coll-sub"></span></div>
         <div class="card tile spend"><span class="k">Spent</span><span class="v" id="d-exp">₹0</span><span class="d" id="d-exp-sub"></span></div>
         <div class="card tile hand"><span class="k">Balance in hand</span><span class="v" id="d-bal">₹0</span><span class="d">Collections minus expenses</span></div>
+        <div class="card tile cash"><span class="k">Collected in cash</span><span class="v" id="d-cash">₹0</span><span class="d" id="d-cash-sub"></span></div>
+        <div class="card tile upi"><span class="k">Collected by UPI</span><span class="v" id="d-upi">₹0</span><span class="d" id="d-upi-sub"></span></div>
       </div>
+      <p class="offwarn" id="mode-warn" hidden style="margin-top:14px"></p>
       <div class="card chart" style="margin-top:14px">
         <div class="pubhead">
           <div><h3>By collector</h3>
@@ -704,6 +751,27 @@ footer p{margin:0}
       <p class="cap taphint">Tap a row to see the full entry &middot; double-tap to edit it</p>
       <p class="empty" id="con-empty" hidden>No contacts saved yet.</p>
       <p class="cap" style="margin-top:12px">Team only. Contacts are shared across every year and never appear on the public page.</p>
+    </section>
+
+    <section class="panel" id="panel-table" role="tabpanel" aria-labelledby="tab-table" hidden>
+      <div class="toolbar">
+        <label class="sortwrap"><span>Show</span>
+          <select id="tb-set" aria-label="Which records to show">
+            <option value="contributors">Collections</option>
+            <option value="expenses">Expenses</option>
+            <option value="lending">Balance / money out</option>
+            <option value="sponsors">Sponsors</option>
+            <option value="contacts">Contacts</option>
+          </select></label>
+        <input type="text" class="search" id="tb-search" placeholder="Any words…" aria-label="Search the table">
+        <button class="btn" id="tb-add" type="button">Add a row</button>
+        <button class="btn sec" id="tb-export" type="button">Export Excel</button>
+      </div>
+      <p class="cap" id="tb-note"></p>
+      <div class="tablewrap gridwrap"><table id="tb-table" class="grid"><thead><tr id="tb-head"></tr></thead>
+        <tbody id="tb-body"></tbody></table></div>
+      <p class="empty" id="tb-empty" hidden>Nothing here yet.</p>
+      <p class="cap taphint">Tap any cell to change it &middot; Enter saves and moves down &middot; Tab moves across &middot; Esc cancels</p>
     </section>
 
     <section class="panel" id="panel-media" role="tabpanel" aria-labelledby="tab-media" hidden>
@@ -1020,7 +1088,8 @@ var doc = null;            // {festivalName, activeYear, years:{ "2026": {target
 var remoteSha = null;      // GitHub blob sha of data.json, for safe updates
 var dirty = false;
 var cfg = loadCfg();
-var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1}, lSearch:"", pSearch:"", conSearch:"", conFilter:"all", conSort:{k:"name",dir:1} };
+var ui = { year:null, cFilter:"all", cSearch:"", cSort:{k:"sno",dir:1}, eSearch:"", eSort:{k:"sno",dir:1}, pSort:{k:"amount",dir:-1}, lSearch:"", pSearch:"", conSearch:"", conFilter:"all", conSort:{k:"name",dir:1},
+  tbSet:"contributors", tbSearch:"" };
 
 function loadCfg(){ try{ return JSON.parse(localStorage.getItem(LS_CFG)||"{}"); }catch(e){ return {}; } }
 function saveCfg(){ try{ localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }catch(e){} }
@@ -1219,7 +1288,29 @@ function lending(){
   var yr=year(); if(!yr.lending) yr.lending=[];
   return yr.lending;
 }
-function opening(){ return num(year().opening)||0; }
+function yearOf(y){
+  return doc.years[String(y)] || {contributors:[],expenses:[],lending:[]};
+}
+/* An opening balance you have not typed follows last year's cash in hand on its
+   own — so interest recorded after the rollover still lands in this year. */
+function openingOf(y, depth){
+  depth=depth||0;
+  var yr=yearOf(y);
+  if(num(yr.opening)!==null) return num(yr.opening);      /* a figure you typed wins */
+  if(depth>10) return 0;
+  if(!doc.years[String(y-1)]) return 0;
+  return cashInHandOf(y-1, depth+1);
+}
+function cashInHandOf(y, depth){
+  var yr=yearOf(y);
+  var coll=sumOf(yr.contributors||[],"amount");
+  var spent=sumOf(yr.expenses||[],"amount");
+  var given=(yr.lending||[]).reduce(function(t,l){ return t+(num(l.amount)||0); },0);
+  var back =(yr.lending||[]).reduce(function(t,l){ return t+(num(l.returned)||0); },0);
+  return openingOf(y, depth) + coll - spent - given + back;
+}
+function openingIsAuto(){ return num(year().opening)===null; }
+function opening(){ return openingOf(ui.year); }
 function lentOut(){       /* still with a holder */
   return lending().filter(function(l){ return num(l.returned)===null; })
                   .reduce(function(t,l){ return t+(num(l.amount)||0); },0);
@@ -1234,10 +1325,7 @@ function interestEarned(){
   return lending().filter(function(l){ return num(l.returned)!==null; })
     .reduce(function(t,l){ return t+((num(l.returned)||0)-(num(l.amount)||0)); },0);
 }
-function cashInHand(){
-  return opening() + sumOf(contributors(),"amount") - sumOf(expenses(),"amount")
-         - lentGiven() + lentBack();
-}
+function cashInHand(){ return cashInHandOf(ui.year); }
 function lendState(l){
   if(num(l.returned)!==null) return "back";
   if(l.dueDate && l.dueDate < todayISO()) return "overdue";
@@ -1251,19 +1339,37 @@ function renderLending(){
   var y=ui.year;
   $("l-y").textContent=y; $("l-py").textContent=(y-1);
   $("l-open").textContent=money(opening());
-  $("l-open-sub").textContent = opening()>0 ? "last year’s balance and interest" : "nothing carried in";
+  $("l-open-sub").textContent = opening()>0
+    ? (openingIsAuto()? "following "+(ui.year-1)+" automatically" : "a figure you set by hand")
+    : "nothing carried in";
   $("l-out").textContent=money(lentOut());
   var outCount=lending().filter(function(l){ return num(l.returned)===null; }).length;
   var due=lending().filter(function(l){ return lendState(l)==="overdue"; }).length;
+  var owed=lending().filter(function(l){ return num(l.returned)===null; })
+    .reduce(function(t,l){ var a=num(l.agreed); return t+(a===null?(num(l.amount)||0):a); },0);
   $("l-out-sub").textContent = outCount
-    ? outCount+(outCount===1?" holder":" holders")+(due?" · "+due+" past the due date":"")
+    ? outCount+(outCount===1?" holder":" holders")+
+      (owed>lentOut()? " · "+money(owed)+" due back" : "")+
+      (due?" · "+due+" past the due date":"")
     : "nothing out";
   $("l-hand").textContent=money(cashInHand());
   var ie=interestEarned();
   $("l-hand-sub").textContent = ie ? (ie>0?"includes ":"after ")+money(Math.abs(ie))+
     (ie>0?" interest received":" short on returns") : "opening + collected − spent − out";
-  if(document.activeElement!==$("l-open-input")) $("l-open-input").value = opening()||"";
-  $("l-open-hint").textContent = "Counted separately from chanda, so it never looks like a donation.";
+  var autoOpen=openingIsAuto();
+  if(document.activeElement!==$("l-open-input"))
+    $("l-open-input").value = autoOpen ? "" : (opening()||"");
+  $("l-open-input").placeholder = autoOpen ? String(opening()||0) : "";
+  $("l-open-hint").innerHTML = autoOpen
+    ? "Following "+(ui.year-1)+" on its own &mdash; "+esc(money(opening()))+
+      ". If money comes back from a holder later, this follows it. Type a figure only to override."
+    : "Fixed at "+esc(money(opening()))+
+      '. <button class="linkbtn" id="l-open-auto" type="button">Follow '+(ui.year-1)+" again</button>";
+  var ab=$("l-open-auto");
+  if(ab) ab.addEventListener("click",function(){
+    year().opening=null; markDirty(); renderAll();
+    toast("Now following "+(ui.year-1)+" automatically.");
+  });
 
   var lwords=searchWords(ui.lSearch||"");
   var rows=lending().filter(function(l){ return matchesWords(lendHaystack(l), lwords); })
@@ -1561,6 +1667,282 @@ function walkPhoneQueue(queue, i, tally){
   }
 }
 
+/* =========================================================
+   The Table tab: every record in a grid, edited in place.
+   A cell only becomes an input when you tap it, so 70 rows
+   stay light on a village phone.
+   ========================================================= */
+var TB_SETS = {
+  contributors:{
+    label:"Collections", perYear:true,
+    get:function(){ return contributors(); },
+    make:function(){ return {id:uid(), sno:nextSno(contributors()), name:"", amount:null,
+      promised:null, collectedBy:"", mode:"", date:"", phone:"", prevAmount:null,
+      prevName:"", tag:"", notes:""}; },
+    cols:[
+      {k:"sno",   t:"No.",        type:"int", w:60},
+      {k:"name",  t:"Name",       type:"text"},
+      {k:"amount",t:"Received",   type:"number"},
+      {k:"promised",t:"Promised", type:"number"},
+      {k:"collectedBy",t:"Collected by", type:"coll"},
+      {k:"mode",  t:"Cash/UPI",   type:"enum", opts:function(){ return PAY_MODES; }},
+      {k:"date",  t:"Date",       type:"date"},
+      {k:"phone", t:"Phone",      type:"text"},
+      {k:"prevAmount",t:"Last year", type:"number"},
+      {k:"prevName",t:"Last year's name", type:"text"},
+      {k:"tag",   t:"Reconciliation", type:"enum", opts:function(){ return TAGS; }},
+      {k:"notes", t:"Notes",      type:"text"},
+      {k:"__status", t:"Status",  type:"ro", val:function(r){
+        return {paid:"Received",partial:"Part paid","new":"New",pending:"Pending"}[paidState(r)]; }}
+    ],
+    hay:contributorHaystack,
+    refresh:renderContributors
+  },
+  expenses:{
+    label:"Expenses", perYear:true,
+    get:function(){ return expenses(); },
+    make:function(){ return {id:uid(), sno:nextSno(expenses()), category:EXPENSE_HEADS[0],
+      item:"", amount:null, paidBy:"", mode:"", date:"", notes:""}; },
+    cols:[
+      {k:"sno",     t:"No.",   type:"int", w:60},
+      {k:"category",t:"Head",  type:"enum", opts:function(){ return EXPENSE_HEADS; }},
+      {k:"item",    t:"Item",  type:"text"},
+      {k:"amount",  t:"Amount",type:"number"},
+      {k:"paidBy",  t:"Paid by", type:"coll"},
+      {k:"mode",    t:"Mode",  type:"enum", opts:function(){ return MODES; }},
+      {k:"date",    t:"Date",  type:"date"},
+      {k:"notes",   t:"Notes", type:"text"}
+    ],
+    hay:expenseHaystack,
+    refresh:renderExpenses
+  },
+  lending:{
+    label:"Balance / money out", perYear:true,
+    get:function(){ return lending(); },
+    make:function(){ return {id:uid("l"), sno:lending().length+1, holder:"", phone:"",
+      amount:null, given:todayISO(), agreed:null, dueDate:"", returned:null,
+      returnedDate:"", notes:""}; },
+    cols:[
+      {k:"sno",    t:"No.",    type:"int", w:60},
+      {k:"holder", t:"Held by",type:"coll"},
+      {k:"phone",  t:"Phone",  type:"text"},
+      {k:"amount", t:"Given",  type:"number"},
+      {k:"given",  t:"Date given", type:"date"},
+      {k:"agreed", t:"Agreed back", type:"number"},
+      {k:"dueDate",t:"Due",    type:"date"},
+      {k:"returned",t:"Returned", type:"number"},
+      {k:"returnedDate",t:"Date returned", type:"date"},
+      {k:"notes",  t:"Notes",  type:"text"}
+    ],
+    hay:lendHaystack,
+    refresh:renderLending
+  },
+  sponsors:{
+    label:"Sponsors", perYear:true,
+    get:function(){ return sponsors(); },
+    make:function(){ return {id:uid("sp"), sno:sponsors().length+1, name:"",
+      item:"Annadanam (Food)", notes:""}; },
+    cols:[
+      {k:"sno",  t:"No.",  type:"int", w:60},
+      {k:"name", t:"Sponsor", type:"text"},
+      {k:"item", t:"What they gave", type:"enum", opts:function(){ return EXPENSE_HEADS; }},
+      {k:"notes",t:"Notes", type:"text"}
+    ],
+    hay:function(sp){ return [sp.name, sp.item, sp.notes, sp.sno]; },
+    refresh:renderSponsors
+  },
+  contacts:{
+    label:"Contacts", perYear:false,
+    get:function(){ return contacts(); },
+    make:function(){ return {id:uid("k"), sno:contacts().length+1, name:"", phone:"",
+      category:"Other", role:"", village:"", notes:""}; },
+    cols:[
+      {k:"sno",     t:"No.",  type:"int", w:60},
+      {k:"name",    t:"Name", type:"text"},
+      {k:"phone",   t:"Phone",type:"text"},
+      {k:"category",t:"Category", type:"enum", opts:function(){ return CONTACT_CATS; }},
+      {k:"role",    t:"What they do", type:"text"},
+      {k:"village", t:"Village", type:"text"},
+      {k:"notes",   t:"Notes", type:"text"}
+    ],
+    hay:contactHaystack,
+    refresh:renderContacts
+  }
+};
+function tbSet(){ return TB_SETS[ui.tbSet||"contributors"]; }
+function tbRows(){
+  var set=tbSet();
+  var words=searchWords(ui.tbSearch||"");
+  return set.get().filter(function(r){ return matchesWords(set.hay(r), words); })
+    .slice().sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
+}
+function renderTable(){
+  var set=tbSet(), cols=set.cols, rows=tbRows();
+  $("tb-note").textContent = (set.perYear
+      ? set.label+" for "+ui.year+" — changes save as you make them."
+      : set.label+" are shared across every year — changes save as you make them.")+
+    " None of it is on the public page.";
+  $("tb-head").innerHTML = cols.map(function(c){
+    return '<th'+(c.w?' style="width:'+c.w+'px"':'')+'>'+esc(c.t)+'</th>';
+  }).join("")+'<th class="delcell"></th>';
+  $("tb-empty").hidden = rows.length>0;
+  $("tb-body").innerHTML = rows.map(function(r){
+    return '<tr data-id="'+esc(r.id)+'">'+cols.map(function(c){
+      var ro = c.type==="ro";
+      var raw = ro ? c.val(r) : r[c.k];
+      var txt = (c.type==="number") ? (num(raw)===null?"":money(raw))
+              : (c.type==="int")    ? (num(raw)===null?"":String(num(raw)))
+              : (c.type==="date")   ? (raw?fmtDate(raw):"")
+              : (raw==null?"":String(raw));
+      return '<td class="'+(c.type==="number"||c.type==="int"?"num ":"")+(ro?"ro ":"")+'" data-k="'+esc(c.k)+'">'+
+        '<span class="cell"'+(ro?'':' tabindex="0" role="button"')+'>'+esc(txt)+'</span></td>';
+    }).join("")+
+    '<td class="delcell"><button class="delrow" type="button" title="Remove this row">&times;</button></td></tr>';
+  }).join("");
+  wireTable();
+}
+function tbFind(id){ return tbSet().get().filter(function(r){ return r.id===id; })[0]; }
+function wireTable(){
+  var body=$("tb-body"), cols=tbSet().cols;
+  function colFor(k){ return cols.filter(function(c){ return c.k===k; })[0]; }
+
+  function commit(td, row, col, value){
+    var before=row[col.k];
+    if(col.type==="number"||col.type==="int"){ row[col.k]=num(value); }
+    else { row[col.k]=String(value==null?"":value); }
+    var changed = String(before==null?"":before)!==String(row[col.k]==null?"":row[col.k]);
+    if(changed){ markDirty(); }
+    return changed;
+  }
+  function edit(td, move){
+    if(td.classList.contains("ro")) return;
+    if(td.querySelector("input,select")) return;
+    var tr=td.closest("tr"), row=tbFind(tr.dataset.id);
+    if(!row) return;
+    var col=colFor(td.dataset.k);
+    var span=td.querySelector(".cell");
+    var cur=row[col.k];
+    var el;
+    if(col.type==="enum" || col.type==="coll"){
+      var opts = col.type==="coll" ? collectorOptions(cur) : col.opts();
+      el=document.createElement("select");
+      el.innerHTML='<option value=""></option>'+opts.map(function(o){
+        return '<option value="'+esc(o)+'"'+(String(cur||"")===o?" selected":"")+'>'+esc(o)+'</option>';
+      }).join("");
+    } else {
+      el=document.createElement("input");
+      el.type = col.type==="date" ? "date" : (col.type==="number"||col.type==="int") ? "number" : "text";
+      if(col.type==="number"||col.type==="int"){ el.step="1"; el.className="num"; }
+      el.value = cur==null?"":String(cur);
+    }
+    span.style.display="none"; td.appendChild(el);
+    el.focus(); if(el.select) el.select();
+
+    var done=false;
+    function paint(cellTd, c, r){
+      var raw = c.type==="ro" ? c.val(r) : r[c.k];
+      var txt = (c.type==="number") ? (num(raw)===null?"":money(raw))
+              : (c.type==="int")    ? (num(raw)===null?"":String(num(raw)))
+              : (c.type==="date")   ? (raw?fmtDate(raw):"")
+              : (raw==null?"":String(raw));
+      var sp=cellTd.querySelector(".cell");
+      if(sp) sp.textContent=txt;
+    }
+    function finish(save, moveTo){
+      if(done) return; done=true;
+      var changed = save ? commit(td,row,col,el.value) : false;
+      el.remove(); span.style.display="";
+      /* repaint this cell and the derived ones in its row — no full rebuild,
+         so a click straight afterwards lands on an element that still exists */
+      paint(td, col, row);
+      var tr=td.closest("tr");
+      cols.forEach(function(c){
+        if(c.type!=="ro") return;
+        var cellTd=tr.querySelector('td[data-k="'+c.k.replace(/"/g,'')+'"]');
+        if(cellTd) paint(cellTd, c, row);
+      });
+      if(changed){
+        renderHeadline(); renderCollectors(); renderDirty();
+        if(tbSet().refresh) tbSet().refresh();        /* the other tabs stay in step */
+        td.classList.add("saved");
+        setTimeout(function(){ td.classList.remove("saved"); },1200);
+        if(col.k==="sno") setTimeout(renderTable,1250);   /* order changed — redraw once */
+      }
+      if(moveTo) focusNeighbour(row.id, col.k, moveTo);
+    }
+    el.addEventListener("blur",function(){ finish(true,null); });
+    el.addEventListener("keydown",function(e){
+      if(e.key==="Enter"){ e.preventDefault(); finish(true,"down"); }
+      else if(e.key==="Escape"){ e.preventDefault(); finish(false,null); }
+      else if(e.key==="Tab"){ e.preventDefault(); finish(true, e.shiftKey?"left":"right"); }
+    });
+  }
+  function focusNeighbour(id, k, dir){
+    var rows=tbRows(), cols2=tbSet().cols.filter(function(c){ return c.type!=="ro"; });
+    var ri=rows.findIndex(function(r){ return r.id===id; });
+    var ci=cols2.findIndex(function(c){ return c.k===k; });
+    if(ri<0||ci<0) return;
+    if(dir==="down"){
+      if(ri>=rows.length-1) return;                 /* last row — just close, don't reopen */
+      ri=ri+1;
+    }
+    if(dir==="right"){ ci++; if(ci>=cols2.length){ ci=0; ri=Math.min(rows.length-1, ri+1); } }
+    if(dir==="left"){ ci--; if(ci<0){ ci=cols2.length-1; ri=Math.max(0, ri-1); } }
+    var td=document.querySelector('#tb-body tr[data-id="'+CSS.escape(rows[ri].id)+'"] td[data-k="'+CSS.escape(cols2[ci].k)+'"]');
+    if(td){ td.querySelector(".cell").focus(); edit(td); }
+  }
+
+  body.querySelectorAll("td[data-k]").forEach(function(td){
+    var span=td.querySelector(".cell");
+    if(!span || td.classList.contains("ro")) return;
+    span.addEventListener("click",function(){ edit(td); });
+    span.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); edit(td); }
+    });
+  });
+  body.querySelectorAll(".delrow").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var tr=btn.closest("tr"), row=tbFind(tr.dataset.id); if(!row) return;
+      if(btn.dataset.armed){
+        var arr=tbSet().get(), i=arr.indexOf(row);
+        if(i>=0) arr.splice(i,1);
+        markDirty(); renderAll(); toast("Row removed.");
+        return;
+      }
+      btn.dataset.armed="1"; btn.textContent="?"; btn.title="Tap again to remove";
+    });
+  });
+}
+function tbAddRow(){
+  var set=tbSet(), arr=set.get();
+  arr.push(set.make());
+  markDirty(); renderAll();
+  setTimeout(function(){
+    var rows=tbRows(), last=rows[rows.length-1];
+    if(!last) return;
+    var td=document.querySelector('#tb-body tr[data-id="'+CSS.escape(last.id)+'"] td[data-k="'+
+      CSS.escape(set.cols[1].k)+'"]');
+    if(td){ td.scrollIntoView({block:"center"}); td.querySelector(".cell").click(); }
+  },60);
+}
+function tbExport(){
+  var set=tbSet(), cols=set.cols, rows=tbRows();
+  if(!rows.length){ toast("Nothing to export."); return; }
+  var head=cols.map(function(c){ return c.t; });
+  var data=[head].concat(rows.map(function(r){
+    return cols.map(function(c){
+      var v = c.type==="ro" ? c.val(r) : r[c.k];
+      return (c.type==="number"||c.type==="int") ? (num(v)===null?"":num(v)) : (v==null?"":String(v));
+    });
+  }));
+  try{
+    var bytes=buildXlsx([{name:set.label.slice(0,28), rows:data}]);
+    downloadBlob(bytes,"Chanda_"+set.label.replace(/[^A-Za-z]+/g,"_")+"_"+ui.year+".xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    toast("Downloaded.");
+  }catch(err){ toast("Could not build the workbook."); }
+}
+
 function renderContacts(){
   var words=searchWords(ui.conSearch||"");
   var all=contacts();
@@ -1649,11 +2031,42 @@ function renderHeadline(){
   $("d-y0").textContent=(ui.year-1);
   $("d-carry").textContent=money(op);
   $("d-carry-sub").textContent = op
-    ? "last year's leftover — not counted as chanda"
+    ? "last year's leftover, interest included — not counted as chanda"
     : "nothing carried in · set it on the Balance tab";
   $("d-carry-tile").classList.toggle("empty-tile", !op);
   $("rf-carry").textContent=money(op);
   $("rf-carry-wrap").hidden = !op;
+
+  /* how the money actually came in */
+  var byMode={cash:0, upi:0, unset:0, cashN:0, upiN:0, unsetN:0};
+  contributors().forEach(function(c){
+    var a=num(c.amount)||0; if(!a) return;
+    var m=String(c.mode||"").toLowerCase();
+    if(m==="cash"){ byMode.cash+=a; byMode.cashN++; }
+    else if(m==="upi"){ byMode.upi+=a; byMode.upiN++; }
+    else { byMode.unset+=a; byMode.unsetN++; }
+  });
+  $("d-cash").textContent=money(byMode.cash);
+  $("d-upi").textContent=money(byMode.upi);
+  $("d-cash-sub").textContent = byMode.cashN
+    ? byMode.cashN+(byMode.cashN===1?" entry":" entries")+
+      (coll? " · "+Math.round(byMode.cash/coll*100)+"% of what came in" : "")
+    : "nothing recorded as cash yet";
+  $("d-upi-sub").textContent = byMode.upiN
+    ? byMode.upiN+(byMode.upiN===1?" entry":" entries")+
+      (coll? " · "+Math.round(byMode.upi/coll*100)+"% of what came in" : "")
+    : "nothing recorded as UPI yet";
+  $("rf-cash").textContent=money(byMode.cash);
+  $("rf-upi").textContent=money(byMode.upi);
+  $("rf-cash-wrap").hidden = !(byMode.cash||byMode.upi);
+  $("rf-upi-wrap").hidden  = !(byMode.cash||byMode.upi);
+  var mw=$("mode-warn");
+  if(byMode.unset>0){
+    mw.hidden=false;
+    mw.textContent=money(byMode.unset)+" across "+byMode.unsetN+
+      (byMode.unsetN===1?" entry has":" entries have")+
+      " no Cash or UPI recorded, so it is in neither total.";
+  } else mw.hidden=true;
   var handSub=document.querySelector("#panel-dash .tile.hand .d");
   var out=lentOut();
   /* the carried figure has its own tile now, so this line only explains the sum */
@@ -2198,6 +2611,7 @@ function renderAll(){
   $("chart1-cap").textContent="This year against the "+py+" ledger, top 12 by amount";
   $("foot").textContent = contributors().length+" contributors · "+expenses().length+" expense heads · "+y+" register";
   renderLending(); renderSponsors(); renderContacts(); renderCollectors();
+  if(!$("panel-table").hidden) renderTable();
   $("d-y3").textContent=ui.year;
   if(!$("panel-media").hidden) renderMedia();
 }
@@ -2270,6 +2684,77 @@ $("sheet-save").addEventListener("click",function(){
 });
 function nextSno(arr){ var m=0; arr.forEach(function(r){ var n=num(r.sno); if(n>m) m=n; }); return m+1; }
 
+/* ---------- catch the same person being written down twice ---------- */
+function similarContributors(name, exceptId){
+  var out=[];
+  Object.keys(doc.years||{}).forEach(function(y){
+    (doc.years[y].contributors||[]).forEach(function(c){
+      if(exceptId && c.id===exceptId) return;
+      var sc=nameScore(name, c.name);
+      if(sc>=60) out.push({row:c, year:y, score:sc, thisYear:String(y)===String(ui.year)});
+    });
+  });
+  return out.sort(function(a,b){ return (b.thisYear-a.thisYear) || (b.score-a.score); });
+}
+function similarExpenses(category, item, amount){
+  var amt=num(amount);
+  return (expenses()||[]).filter(function(e){
+    if(e.category!==category) return false;
+    var sameItem = nameScore(item||"", e.item||"")>=60 || (!item && !e.item);
+    var sameAmt = amt!==null && num(e.amount)===amt;
+    return sameItem && (sameAmt || !amt);
+  });
+}
+/* a quiet line under the name box while you type */
+function liveDupHint(fieldId, hostId, lookup){
+  var f=$(fieldId); if(!f) return;
+  var host=document.createElement("span");
+  host.className="hint duphint"; host.id=hostId;
+  f.parentNode.appendChild(host);
+  function check(){
+    var v=String(f.value||"").trim();
+    if(v.length<3){ host.textContent=""; host.classList.remove("warn"); return; }
+    var hits=lookup(v);
+    if(!hits.length){ host.textContent=""; host.classList.remove("warn"); return; }
+    host.classList.add("warn");
+    host.textContent = hits.length+" similar "+(hits.length===1?"name":"names")+" already: "+
+      hits.slice(0,3).map(function(h){
+        return h.row.name+" ("+h.year+(h.thisYear?", this year":"")+")"; }).join(", ")+
+      (hits.length>3? " and "+(hits.length-3)+" more" : "");
+  }
+  f.addEventListener("input",check);
+  check();
+}
+function confirmDuplicate(hits, name, onSeparate, onMerge, onOpen){
+  var here=hits.filter(function(h){ return h.thisYear; });
+  var past=hits.filter(function(h){ return !h.thisYear; });
+  var lines=hits.slice(0,5).map(function(h){
+    var amt=num(h.row.amount);
+    return "   "+h.row.name+"  —  "+h.year+(h.thisYear?" (this year)":"")+
+      (amt!==null? ",  "+money(amt) : ",  nothing received yet");
+  }).join("\n");
+  var extras=[];
+  if(here.length && onMerge){
+    extras.push({label:"Add this amount to "+here[0].row.name, className:"sec", once:true,
+                 fn:function(){ onMerge(here[0].row); }});
+  }
+  if(here.length && onOpen){
+    extras.push({label:"Open "+here[0].row.name+" instead", className:"sec", once:true,
+                 fn:function(){ onOpen(here[0].row); }});
+  }
+  openSheet(here.length? "Already on this year's register?" : "Seen before", [],
+    function(){ onSeparate(); }, null, {
+      saveLabel:"Add as a separate person",
+      intro:"You are adding “"+name+"”.\n\n"+
+        (here.length? "Someone with a very similar name is already on the "+ui.year+" register:"
+                    : "Nobody like this on "+ui.year+" yet, but the register has:")+
+        "\n"+lines+"\n\n"+
+        (here.length? "Two people really can share a name — only merge if it is the same person."
+                    : "Adding them is fine. This is just so you know."),
+      extras:extras
+    });
+}
+
 function editContributor(c){
   var isNew=!c; c=c||{};
   openSheet(isNew?"Add contributor":"Edit contributor",[
@@ -2289,6 +2774,31 @@ function editContributor(c){
   ],function(v){
     if(!v.name){ toast("A name is required."); return false; }
     if(isNew){
+      var hits=similarContributors(v.name, null);
+      if(hits.length && !v.__forced){
+        var add=function(){
+          contributors().push({id:uid(),sno:nextSno(contributors()),name:v.name,amount:v.amount,
+            promised:v.promised,collectedBy:fromOption(v.collectedBy),mode:v.mode,date:v.date,
+            prevAmount:v.prevAmount,prevName:v.prevName,phone:v.phone,tag:v.tag,notes:v.notes});
+          markDirty(); renderAll(); toast("Contributor added.");
+        };
+        setTimeout(function(){
+          confirmDuplicate(hits, v.name, add,
+            function(target){                       /* merge the money into theirs */
+              var wasAmt=num(target.amount)||0, gain=num(v.amount)||0;
+              target.amount=wasAmt+gain;
+              if(!target.phone && v.phone) target.phone=v.phone;
+              if(!target.collectedBy && v.collectedBy) target.collectedBy=fromOption(v.collectedBy);
+              if(!target.mode && v.mode) target.mode=v.mode;
+              if(!target.date && v.date) target.date=v.date;
+              if(v.notes) target.notes=(target.notes?target.notes+" · ":"")+v.notes;
+              markDirty(); renderAll();
+              toast(money(gain)+" added to "+target.name+" — now "+money(target.amount)+".");
+            },
+            function(target){ editContributor(target); });
+        },0);
+        return;                                     /* the sheet closes; the question follows */
+      }
       contributors().push({id:uid(),sno:nextSno(contributors()),name:v.name,amount:v.amount,
         promised:v.promised,collectedBy:fromOption(v.collectedBy),mode:v.mode,date:v.date,
         prevAmount:v.prevAmount,prevName:v.prevName,phone:v.phone,tag:v.tag,notes:v.notes});
@@ -2304,6 +2814,9 @@ function editContributor(c){
   }, isNew?null:function(){
     var a=contributors(), i=a.indexOf(c); if(i>=0) a.splice(i,1);
     markDirty(); renderAll(); toast("Removed from the register.");
+  });
+  liveDupHint("f_name","dup-hint", function(v){
+    return similarContributors(v, isNew?null:c.id);
   });
 }
 function editExpense(e){
@@ -2321,6 +2834,30 @@ function editExpense(e){
     {k:"notes",label:"Receipt / notes",type:"textarea",value:e.notes||""}
   ],function(v){
     if(isNew){
+      var dups=similarExpenses(v.category, v.item, v.amount);
+      if(dups.length){
+        var addIt=function(){
+          expenses().push({id:uid(),sno:nextSno(expenses()),category:v.category,item:v.item,
+            amount:v.amount,paidBy:fromOption(v.paidBy),mode:v.mode,date:v.date,notes:v.notes});
+          markDirty(); renderAll(); toast("Expense added.");
+        };
+        setTimeout(function(){
+          var lines=dups.slice(0,4).map(function(d){
+            return "   "+d.category+"  —  "+(d.item||"no description")+"  —  "+money(d.amount)+
+              (d.date? ",  "+fmtDate(d.date):"")+(d.paidBy? ",  "+d.paidBy:"");
+          }).join("\n");
+          openSheet("Already recorded?", [], addIt, null, {
+            saveLabel:"Add it anyway",
+            intro:"You are adding "+v.category+(v.item? " — "+v.item : "")+
+              (num(v.amount)!==null? " — "+money(v.amount) : "")+".\n\n"+
+              "The "+ui.year+" expenses already have:\n"+lines+"\n\n"+
+              "If this is the same payment, close this instead of adding it twice.",
+            extras:[{label:"Open the existing one", className:"sec", once:true,
+                     fn:function(){ editExpense(dups[0]); }}]
+          });
+        },0);
+        return;
+      }
       expenses().push({id:uid(),sno:nextSno(expenses()),category:v.category,item:v.item,amount:v.amount,
         paidBy:fromOption(v.paidBy),mode:v.mode,date:v.date,notes:v.notes});
       toast("Expense added.");
@@ -2358,7 +2895,7 @@ function createYear(ny){
   var src=year();
   var carry=cashInHand();
   doc.years[String(ny)]={
-    opening: carry>0 ? carry : null,
+    opening: null,                 /* null means "follow last year", so late returns still count */
     lending: [],
     target: sumOf(src.contributors,"amount")||null,
     contributors: src.contributors.slice()
@@ -3786,7 +4323,8 @@ function removeYear(y){
    ========================================================= */
 function tabTo(which){
   [["dash","panel-dash"],["coll","panel-coll"],["exp","panel-exp"],
-   ["lend","panel-lend"],["con","panel-con"],["media","panel-media"]].forEach(function(p){
+   ["lend","panel-lend"],["con","panel-con"],["table","panel-table"],
+   ["media","panel-media"]].forEach(function(p){
     var on=p[0]===which;
     $("tab-"+p[0]).setAttribute("aria-selected",on?"true":"false");
     $(p[1]).hidden=!on;
@@ -3881,6 +4419,11 @@ $("d-editcoll").addEventListener("click",manageCollectors);
 $("con-add").addEventListener("click",addContact);
 $("con-import").addEventListener("click",importNumbers);
 $("con-phone").addEventListener("click",addFromPhone);
+$("tab-table").addEventListener("click",function(){ tabTo("table"); renderTable(); });
+$("tb-set").addEventListener("change",function(){ ui.tbSet=this.value; renderTable(); });
+$("tb-search").addEventListener("input",function(){ ui.tbSearch=this.value; renderTable(); });
+$("tb-add").addEventListener("click",tbAddRow);
+$("tb-export").addEventListener("click",tbExport);
 $("con-export").addEventListener("click",exportContacts);
 $("con-search").addEventListener("input",function(){ ui.conSearch=this.value; renderContacts(); });
 $("con-sort").addEventListener("change",function(){
@@ -3891,8 +4434,9 @@ $("l-search").addEventListener("input",function(){ ui.lSearch=this.value; render
 $("pub-esearch").addEventListener("input",function(){ ui.pSearch=this.value; renderPubExpenses(); });
 $("l-open-save").addEventListener("click",function(){
   var v=num($("l-open-input").value);
-  year().opening = (v===null||v<=0) ? null : v;
-  markDirty(); renderAll(); toast("Opening balance set.");
+  year().opening = (v===null||v<0) ? null : v;
+  markDirty(); renderAll();
+  toast(v===null||v<0 ? "Following "+(ui.year-1)+" automatically again." : "Opening balance fixed.");
 });
 tapRouter("e-body",
   function(id){ return expenses().filter(function(r){return r.id===id;})[0]; },
