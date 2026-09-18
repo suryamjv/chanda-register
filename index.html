@@ -715,6 +715,14 @@ footer p{margin:0}
           <span id="l-open-hint" class="hint"></span>
         </div>
       </div>
+      <div class="card chart" style="margin-top:14px">
+        <div class="pubhead">
+          <div><h3>Where the carried-in money came from</h3>
+          <p class="cap" id="oi-cap"></p></div>
+          <button class="btn" id="oi-add" type="button">Add who handed it over</button>
+        </div>
+        <div id="oi-list" style="margin-top:12px"></div>
+      </div>
       <div class="toolbar" style="margin-top:14px">
         <input type="text" class="search" id="l-search" placeholder="Search holder, note, amount or date…" aria-label="Search the balance record">
         <button class="btn" id="l-add" type="button">Give money to someone</button>
@@ -763,6 +771,7 @@ footer p{margin:0}
             <option value="contributors">Collections</option>
             <option value="expenses">Expenses</option>
             <option value="lending">Balance / money out</option>
+            <option value="opening">Carried in</option>
             <option value="sponsors">Sponsors</option>
             <option value="contacts">Contacts</option>
           </select></label>
@@ -1338,6 +1347,104 @@ function todayISO(){
   var d=new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
+/* ---------- who handed over the money carried in from last year ---------- */
+function openingRows(){
+  var yr=year(); if(!yr.openingRows) yr.openingRows=[];
+  return yr.openingRows;
+}
+function openingCash(){
+  return openingRows().filter(function(r){ return String(r.mode||"").toLowerCase()==="cash"; })
+    .reduce(function(t,r){ return t+(num(r.amount)||0); },0);
+}
+function openingUpi(){
+  return openingRows().filter(function(r){ return String(r.mode||"").toLowerCase()==="upi"; })
+    .reduce(function(t,r){ return t+(num(r.amount)||0); },0);
+}
+function openingListed(){
+  return openingRows().reduce(function(t,r){ return t+(num(r.amount)||0); },0);
+}
+function openingByName(name){
+  var n=String(name||"");
+  return openingRows().filter(function(r){ return String(r.name||"")===n; });
+}
+function openingFields(r){
+  return [
+    {k:"name",label:"Handed over by",value:r.name||"",list:collectorList(),
+     hint:"Anyone — a collector, or whoever was keeping it"},
+    {k:"amount",label:"Amount",type:"number",value:r.amount==null?"":r.amount},
+    {k:"mode",label:"Cash or UPI",type:"select",allowBlank:true,options:PAY_MODES,value:r.mode||""},
+    {k:"date",label:"Date handed over",type:"date",value:r.date||""},
+    {k:"notes",label:"Notes",value:r.notes||""}
+  ];
+}
+function applyOpening(r,v){
+  r.name=String(v.name||"").trim(); r.amount=num(v.amount);
+  r.mode=v.mode||""; r.date=v.date||""; r.notes=v.notes||"";
+}
+function editOpeningRow(r){
+  openSheet(r.name||"Carried-in money", openingFields(r), function(v){
+    if(!String(v.name||"").trim()){ toast("Who handed it over?"); return false; }
+    if(num(v.amount)===null){ toast("Enter the amount."); return false; }
+    applyOpening(r,v); markDirty(); renderAll();
+  }, function(){
+    var arr=openingRows(), i=arr.indexOf(r);
+    if(i>=0){ arr.splice(i,1); arr.forEach(function(x,n){ x.sno=n+1; }); }
+    markDirty(); renderAll(); toast("Removed.");
+  }, {deleteLabel:"Remove this line"});
+}
+function addOpeningRow(){
+  var arr=openingRows();
+  var left=opening()-openingListed();
+  var r={id:uid("oi"), sno:arr.length+1, name:"", amount:(left>0?left:null),
+         mode:"", date:"", notes:""};
+  openSheet("Who handed it over", openingFields(r), function(v){
+    if(!String(v.name||"").trim()){ toast("Who handed it over?"); return false; }
+    if(num(v.amount)===null){ toast("Enter the amount."); return false; }
+    applyOpening(r,v); arr.push(r); markDirty(); renderAll();
+    toast(money(r.amount)+" from "+r.name+" recorded.");
+  },null,{saveLabel:"Add",
+    intro:"Carried in from "+(ui.year-1)+" is "+money(opening())+
+      (left>0 ? ". "+money(left)+" of it is not yet accounted for." :
+       left<0 ? ". The lines already add up to "+money(openingListed())+", which is more than that." :
+                ". Every rupee of it is already listed.")});
+}
+function renderOpeningRows(){
+  var host=$("oi-list"); if(!host) return;
+  var arr=openingRows().slice().sort(function(a,b){ return (num(a.sno)||0)-(num(b.sno)||0); });
+  var listed=openingListed(), total=opening(), gap=total-listed;
+  $("oi-cap").textContent = total
+    ? "Carried in is "+money(total)+". "+
+      (arr.length ? "Listed here: "+money(listed)+
+        (gap>0 ? " — "+money(gap)+" still unaccounted for."
+        : gap<0 ? " — "+money(-gap)+" more than the carried figure."
+                : " — it all adds up.")
+      : "Nothing listed yet, so none of it counts towards Cash or UPI.")
+    : "Nothing carried in from "+(ui.year-1)+".";
+  if(!arr.length){
+    host.innerHTML='<p class="empty" style="margin:0">Nobody added yet. '+
+      'Use “Add who handed it over” so the carried money shows as cash or UPI.</p>';
+    return;
+  }
+  host.innerHTML=arr.map(function(r){
+    return '<div class="sponedit" data-oi="'+esc(r.id)+'">'+
+      '<div><span class="n">'+esc(r.name||"(no name)")+'</span>'+
+      '<span class="w">'+money(r.amount)+' &middot; '+esc(r.mode||"no mode set")+
+        (r.date?' &middot; '+esc(fmtDate(r.date)):'')+
+        (r.notes?' &middot; '+esc(r.notes):'')+'</span></div>'+
+      '<span class="x"><button class="rowbtn" type="button">Edit</button></span></div>';
+  }).join("")+
+  (gap!==0 ? '<p class="offwarn" style="margin-top:12px">'+
+     (gap>0 ? money(gap)+" of the carried-in money has no name against it yet, so it is not in the Cash or UPI totals."
+            : "These lines add up to "+money(listed)+", which is "+money(-gap)+
+              " more than the "+money(total)+" carried in. One of the two is wrong.")+'</p>' : '');
+  host.querySelectorAll("[data-oi]").forEach(function(row){
+    row.addEventListener("click",function(){
+      var r=openingRows().filter(function(x){ return x.id===row.dataset.oi; })[0];
+      if(r) editOpeningRow(r);
+    });
+  });
+}
+
 function renderLending(){
   var y=ui.year;
   $("l-y").textContent=y; $("l-py").textContent=(y-1);
@@ -1739,6 +1846,22 @@ var TB_SETS = {
     hay:lendHaystack,
     refresh:renderLending
   },
+  opening:{
+    label:"Carried in", perYear:true,
+    get:function(){ return openingRows(); },
+    make:function(){ return {id:uid("oi"), sno:openingRows().length+1, name:"",
+      amount:null, mode:"", date:"", notes:""}; },
+    cols:[
+      {k:"sno",   t:"No.",    type:"int", w:60},
+      {k:"name",  t:"Handed over by", type:"name"},
+      {k:"amount",t:"Amount", type:"number"},
+      {k:"mode",  t:"Cash or UPI", type:"enum", opts:function(){ return PAY_MODES; }},
+      {k:"date",  t:"Date",   type:"date"},
+      {k:"notes", t:"Notes",  type:"text"}
+    ],
+    hay:function(r){ return [r.name, r.mode, r.notes, r.sno, r.amount]; },
+    refresh:renderOpeningRows
+  },
   sponsors:{
     label:"Sponsors", perYear:true,
     get:function(){ return sponsors(); },
@@ -2057,27 +2180,36 @@ function renderHeadline(){
     else if(m==="upi"){ byMode.upi+=a; byMode.upiN++; }
     else { byMode.unset+=a; byMode.unsetN++; }
   });
-  $("d-cash").textContent=money(byMode.cash);
-  $("d-upi").textContent=money(byMode.upi);
-  $("d-cash-sub").textContent = byMode.cashN
-    ? byMode.cashN+(byMode.cashN===1?" entry":" entries")+
-      (coll? " · "+Math.round(byMode.cash/coll*100)+"% of what came in" : "")
-    : "nothing recorded as cash yet";
-  $("d-upi-sub").textContent = byMode.upiN
-    ? byMode.upiN+(byMode.upiN===1?" entry":" entries")+
-      (coll? " · "+Math.round(byMode.upi/coll*100)+"% of what came in" : "")
-    : "nothing recorded as UPI yet";
-  $("rf-cash").textContent=money(byMode.cash);
-  $("rf-upi").textContent=money(byMode.upi);
-  $("rf-cash-wrap").hidden = !(byMode.cash||byMode.upi);
-  $("rf-upi-wrap").hidden  = !(byMode.cash||byMode.upi);
+  var oCash=openingCash(), oUpi=openingUpi();
+  var totCash=byMode.cash+oCash, totUpi=byMode.upi+oUpi;
+  $("d-cash").textContent=money(totCash);
+  $("d-upi").textContent=money(totUpi);
+  function modeSub(thisYear, carried, n, word){
+    if(!thisYear && !carried) return "nothing recorded as "+word+" yet";
+    var bits=[];
+    if(thisYear) bits.push(money(thisYear)+" collected this year");
+    if(carried)  bits.push(money(carried)+" carried in");
+    return bits.join(" · ");
+  }
+  $("d-cash-sub").textContent = modeSub(byMode.cash, oCash, byMode.cashN, "cash");
+  $("d-upi-sub").textContent  = modeSub(byMode.upi,  oUpi,  byMode.upiN,  "UPI");
+  $("rf-cash").textContent=money(totCash);
+  $("rf-upi").textContent=money(totUpi);
+  $("rf-cash-wrap").hidden = !(totCash||totUpi);
+  $("rf-upi-wrap").hidden  = !(totCash||totUpi);
   var mw=$("mode-warn");
-  if(byMode.unset>0){
-    mw.hidden=false;
-    mw.textContent=money(byMode.unset)+" across "+byMode.unsetN+
-      (byMode.unsetN===1?" entry has":" entries have")+
-      " no Cash or UPI recorded, so it is in neither total.";
-  } else mw.hidden=true;
+  var bits2=[];
+  if(byMode.unset>0) bits2.push(money(byMode.unset)+" of this year's collections across "+
+    byMode.unsetN+(byMode.unsetN===1?" entry":" entries")+" has no Cash or UPI against it");
+  var oGap=opening()-openingListed();
+  if(oGap>0) bits2.push(money(oGap)+" of the money carried in from "+(ui.year-1)+
+    " has nobody recorded against it — add it on the Balance tab");
+  var oNoMode=openingRows().filter(function(r){ return !r.mode; })
+    .reduce(function(t,r){ return t+(num(r.amount)||0); },0);
+  if(oNoMode>0) bits2.push(money(oNoMode)+" of the carried-in money has no Cash or UPI set");
+  if(bits2.length){ mw.hidden=false;
+    mw.textContent=bits2.join(". ")+". None of that is in the Cash or UPI totals.";
+  } else { mw.hidden=true; mw.textContent=""; }
   var handSub=document.querySelector("#panel-dash .tile.hand .d");
   var out=lentOut();
   /* the carried figure has its own tile now, so this line only explains the sum */
@@ -2304,10 +2436,19 @@ function collectorRows(){
   function slot(name){
     var k=String(name||"").trim(); if(!k) k="Not recorded";
     if(!map[k]){ map[k]={name:k, cash:0, upi:0, other:0, collected:0, rows:0,
-                          spent:0, spentRows:0, held:0}; order.push(k); }
+                          spent:0, spentRows:0, held:0, carried:0}; order.push(k); }
     return map[k];
   }
   collectorList().forEach(slot);                       /* always list the named team */
+  openingRows().forEach(function(r){
+    var amt=num(r.amount)||0; if(!amt) return;
+    var m=slot(r.name);
+    m.carried+=amt;
+    var mode=String(r.mode||"").toLowerCase();
+    if(mode==="cash") m.cash+=amt;
+    else if(mode==="upi") m.upi+=amt;
+    else m.other+=amt;
+  });
   contributors().forEach(function(c){
     var amt=num(c.amount)||0; if(!amt) return;
     var m=slot(c.collectedBy);
@@ -2325,7 +2466,8 @@ function collectorRows(){
     if(num(l.returned)===null) slot(l.holder).held+=(num(l.amount)||0);
   });
   return order.map(function(k){ return map[k]; })
-    .filter(function(m){ return m.collected||m.spent||m.held||collectorList().indexOf(m.name)>=0; });
+    .filter(function(m){ return m.collected||m.spent||m.held||m.carried||
+                                collectorList().indexOf(m.name)>=0; });
 }
 function renderCollectors(){
   var host=$("d-collectors"); if(!host) return;
@@ -2334,6 +2476,9 @@ function renderCollectors(){
   if(!rows.length){ host.innerHTML='<p class="empty" style="margin:0">No collectors set. Add them in Settings.</p>'; return; }
   var tc=rows.reduce(function(t,m){ return t+m.collected; },0);
   var ts=rows.reduce(function(t,m){ return t+m.spent; },0);
+  var tcar=rows.reduce(function(t,m){ return t+m.carried; },0);
+  var tcash=rows.reduce(function(t,m){ return t+m.cash; },0);
+  var tupi=rows.reduce(function(t,m){ return t+m.upi; },0);
   var off=offListTotals();
   host.innerHTML=(off.rows
     ? '<p class="offwarn">'+off.rows+' row'+(off.rows===1?' is':'s are')+' recorded against '+
@@ -2342,18 +2487,20 @@ function renderCollectors(){
     : '')+'<div class="tablewrap plain-wrap"><table class="pub-table collt"><thead><tr>'+
     '<th class="plain">Collector</th>'+
     '<th class="plain" style="text-align:right">Collected</th>'+
+    '<th class="plain" style="text-align:right">Carried in</th>'+
     '<th class="plain" style="text-align:right">Cash</th>'+
     '<th class="plain" style="text-align:right">UPI</th>'+
     '<th class="plain" style="text-align:right">Spent</th>'+
     '<th class="plain" style="text-align:right">Net held</th></tr></thead><tbody>'+
     rows.map(function(m){
-      var net=m.collected-m.spent;
+      var net=m.collected+m.carried-m.spent;
       return '<tr class="collclick" data-who="'+esc(m.name)+'" tabindex="0" role="button" '+
         'title="Show what '+esc(m.name)+' collected"><td><span class="nm">'+esc(m.name)+'</span>'+
         (m.rows?'<small>'+m.rows+(m.rows===1?" entry":" entries")+
           (m.spentRows?" · "+m.spentRows+" expense"+(m.spentRows===1?"":"s"):"")+'</small>':
           (m.spentRows?'<small>'+m.spentRows+' expense'+(m.spentRows===1?"":"s")+'</small>':''))+'</td>'+
         '<td class="amt num" data-l="Collected"><strong>'+money(m.collected)+'</strong></td>'+
+        '<td class="amt num" data-l="Carried in">'+(m.carried?money(m.carried):'<span class="meta">—</span>')+'</td>'+
         '<td class="amt num" data-l="Cash">'+(m.cash?money(m.cash):'<span class="meta">—</span>')+'</td>'+
         '<td class="amt num" data-l="UPI">'+(m.upi?money(m.upi):'<span class="meta">—</span>')+'</td>'+
         '<td class="amt num" data-l="Spent">'+(m.spent?money(m.spent):'<span class="meta">—</span>')+'</td>'+
@@ -2362,9 +2509,12 @@ function renderCollectors(){
           (m.other?'<span class="meta">'+money(m.other)+' mode not set</span>':'')+'</td></tr>';
     }).join("")+
     '<tr class="totalrow"><td><strong>Total</strong></td>'+
-    '<td class="amt num"><strong>'+money(tc)+'</strong></td><td></td><td></td>'+
+    '<td class="amt num"><strong>'+money(tc)+'</strong></td>'+
+    '<td class="amt num"><strong>'+money(tcar)+'</strong></td>'+
+    '<td class="amt num"><strong>'+money(tcash)+'</strong></td>'+
+    '<td class="amt num"><strong>'+money(tupi)+'</strong></td>'+
     '<td class="amt num"><strong>'+money(ts)+'</strong></td>'+
-    '<td class="amt num"><strong>'+money(tc-ts)+'</strong></td></tr>'+
+    '<td class="amt num"><strong>'+money(tc+tcar-ts)+'</strong></td></tr>'+
     '</tbody></table></div>';
   host.querySelectorAll(".collclick").forEach(function(tr){
     function go(){
@@ -2640,7 +2790,7 @@ function renderAll(){
   $("lg-cur").textContent=y; $("lg-prev").textContent=py+" benchmark";
   $("chart1-cap").textContent="This year against the "+py+" ledger, top 12 by amount";
   $("foot").textContent = contributors().length+" contributors · "+expenses().length+" expense heads · "+y+" register";
-  renderLending(); renderSponsors(); renderContacts(); renderCollectors();
+  renderLending(); renderOpeningRows(); renderSponsors(); renderContacts(); renderCollectors();
   if(!$("panel-table").hidden) renderTable();
   $("d-y3").textContent=ui.year;
   if(!$("panel-media").hidden) renderMedia();
@@ -4439,6 +4589,7 @@ tapRouter("l-body",
   viewLending, editLending);
 $("tab-lend").addEventListener("click",function(){ tabTo("lend"); renderLending(); });
 $("l-add").addEventListener("click",addLending);
+$("oi-add").addEventListener("click",addOpeningRow);
 $("s-add").addEventListener("click",addSponsor);
 tapRouter("con-body",
   function(id){ return contacts().filter(function(r){return r.id===id;})[0]; },
