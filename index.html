@@ -355,6 +355,9 @@ table.grid .delrow:hover{color:var(--bad,#a4342b)}
 .tile.cash{border-left:3px solid var(--good,#4a9a60)}
 .tile.upi{border-left:3px solid var(--s26,#d2662c)}
 .tile.carry.empty-tile .v{color:var(--muted);font-weight:500}
+.collt tr.collclick{cursor:pointer}
+.collt tr.collclick:hover td{background:var(--accent-soft,rgba(210,164,60,.12))}
+.collt tr.collclick:focus{outline:2px solid var(--accent-ink,#8a5f16);outline-offset:-2px}
 .collt tr.totalrow td{border-top:2px solid var(--line-strong);background:var(--surface-2,rgba(0,0,0,.02))}
 .collt .meta{display:block;font-size:11.5px;color:var(--muted)}
 /* ---------- the idol wall ---------- */
@@ -505,7 +508,7 @@ table.grid .delrow:hover{color:var(--bad,#a4342b)}
   table.grid tbody td:last-child{margin-top:0}
 }
 
-.scrim{position:fixed;inset:0;background:rgba(25,15,12,.44);z-index:60;display:flex;justify-content:flex-end}
+.scrim{position:fixed;inset:0;background:rgba(25,15,12,.44);z-index:118;display:flex;justify-content:flex-end}
 .sheet{background:var(--surface);width:min(460px,100%);height:100%;overflow-y:auto;box-shadow:-8px 0 30px rgba(0,0,0,.2);display:flex;flex-direction:column}
 .sheet-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;background:var(--surface);z-index:2}
 .sheet-h h2{font-size:16px}
@@ -519,7 +522,7 @@ table.grid .delrow:hover{color:var(--bad,#a4342b)}
 
 .banner{padding:11px 14px;border-radius:8px;font-size:13.5px;margin-bottom:16px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .banner .btn{padding:5px 11px;font-size:13px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:90;background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-size:13.5px;box-shadow:var(--shadow);max-width:92vw;text-align:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:200;background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-size:13.5px;box-shadow:var(--shadow);max-width:92vw;text-align:center}
 footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);font-size:12.5px;
   text-align:center;display:flex;flex-direction:column;gap:7px}
 footer p{margin:0}
@@ -2336,7 +2339,8 @@ function renderCollectors(){
     '<th class="plain" style="text-align:right">Net held</th></tr></thead><tbody>'+
     rows.map(function(m){
       var net=m.collected-m.spent;
-      return '<tr><td><span class="nm">'+esc(m.name)+'</span>'+
+      return '<tr class="collclick" data-who="'+esc(m.name)+'" tabindex="0" role="button" '+
+        'title="Show what '+esc(m.name)+' collected"><td><span class="nm">'+esc(m.name)+'</span>'+
         (m.rows?'<small>'+m.rows+(m.rows===1?" entry":" entries")+
           (m.spentRows?" · "+m.spentRows+" expense"+(m.spentRows===1?"":"s"):"")+'</small>':
           (m.spentRows?'<small>'+m.spentRows+' expense'+(m.spentRows===1?"":"s")+'</small>':''))+'</td>'+
@@ -2353,6 +2357,23 @@ function renderCollectors(){
     '<td class="amt num"><strong>'+money(ts)+'</strong></td>'+
     '<td class="amt num"><strong>'+money(tc-ts)+'</strong></td></tr>'+
     '</tbody></table></div>';
+  host.querySelectorAll(".collclick").forEach(function(tr){
+    function go(){
+      var who=tr.dataset.who;
+      ui.cSearch = who==="Not recorded" ? "" : who;
+      ui.cFilter = "all";
+      $("c-search").value = ui.cSearch;
+      tabTo("coll"); renderContributors();
+      $("c-search").scrollIntoView({block:"center"});
+      toast(who==="Not recorded"
+        ? "Showing everyone — sort by collector to find the blanks."
+        : "Showing what "+who+" collected. Edit any row to fix an amount.");
+    }
+    tr.addEventListener("click",go);
+    tr.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); }
+    });
+  });
 }
 
 /* ---------- tidy up names typed loosely before the list existed ----------
