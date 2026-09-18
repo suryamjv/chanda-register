@@ -312,6 +312,21 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .zbtns button:hover{background:rgba(255,255,255,.2)}
 .zhint{opacity:.5;font-size:12px}
 .taphint{margin:9px 2px 0;font-size:12.5px;color:var(--muted)}
+.chip .cnt{font-weight:600;opacity:.75;margin-left:2px}
+.offwarn{margin:0 0 12px;padding:9px 12px;border-radius:9px;font-size:13px;line-height:1.5;
+  background:var(--accent-soft,rgba(210,164,60,.14));border:1px solid var(--line-strong);color:var(--ink-2)}
+.collrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.collrow:last-of-type{border-bottom:0}
+.collrow .cinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.collrow .n{font-size:14.5px;color:var(--ink)}
+.collrow .w{font-size:12px;color:var(--muted)}
+.rowbtn.danger-btn{color:var(--bad,#a4342b);border-color:var(--line-strong)}
+.addrow{display:flex;gap:8px;margin-top:14px}
+.addrow input{flex:1;min-width:0}
+.tile.carry{border-left:3px solid var(--part)}
+.tile.carry.empty-tile .v{color:var(--muted);font-weight:500}
+.collt tr.totalrow td{border-top:2px solid var(--line-strong);background:var(--surface-2,rgba(0,0,0,.02))}
+.collt .meta{display:block;font-size:11.5px;color:var(--muted)}
 /* ---------- the idol wall ---------- */
 .idolband{max-width:1180px;margin:0 auto;padding:0 20px}
 .idolwall{margin-top:22px}
@@ -500,6 +515,7 @@ footer p{margin:0}
       <button class="ghost" id="btn-import" type="button" hidden>Import</button>
       <button class="ghost" id="btn-settings" type="button">Settings</button>
       <div class="rail-figs">
+        <div class="rfig" id="rf-carry-wrap" hidden><span class="k">Carried in</span><span class="v" id="rf-carry">₹0</span></div>
         <div class="rfig"><span class="k">Collected</span><span class="v" id="rf-coll">₹0</span></div>
         <div class="rfig"><span class="k">Spent</span><span class="v" id="rf-exp">₹0</span></div>
         <div class="rfig"><span class="k">In hand</span><span class="v" id="rf-bal">₹0</span></div>
@@ -526,9 +542,21 @@ footer p{margin:0}
 
     <section class="panel" id="panel-dash" role="tabpanel" aria-labelledby="tab-dash">
       <div class="grid3">
+        <div class="card tile carry" id="d-carry-tile"><span class="k">Carried in from <span id="d-y0"></span></span><span class="v" id="d-carry">₹0</span><span class="d" id="d-carry-sub"></span></div>
         <div class="card tile lead"><span class="k">Collected <span id="d-y1"></span></span><span class="v" id="d-coll">₹0</span><span class="d" id="d-coll-sub"></span></div>
         <div class="card tile spend"><span class="k">Spent</span><span class="v" id="d-exp">₹0</span><span class="d" id="d-exp-sub"></span></div>
         <div class="card tile hand"><span class="k">Balance in hand</span><span class="v" id="d-bal">₹0</span><span class="d">Collections minus expenses</span></div>
+      </div>
+      <div class="card chart" style="margin-top:14px">
+        <div class="pubhead">
+          <div><h3>By collector</h3>
+          <p class="cap">Who took in what, and what they paid out, for <span id="d-y3"></span></p></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn sec" id="d-editcoll" type="button">Edit collectors</button>
+            <button class="btn sec" id="d-tidy" type="button">Tidy collector names</button>
+          </div>
+        </div>
+        <div id="d-collectors" style="margin-top:12px"></div>
       </div>
       <div class="card upicard" id="team-upi" hidden></div>
       <div class="card progwrap">
@@ -559,13 +587,7 @@ footer p{margin:0}
     <section class="panel" id="panel-coll" role="tabpanel" aria-labelledby="tab-coll" hidden>
       <div class="toolbar">
         <input type="text" class="search" id="c-search" placeholder="Any words — this year’s or last year’s name, collector, note, amount…" aria-label="Search contributors">
-        <div class="chips" id="c-filters">
-          <button class="chip" data-f="all" aria-pressed="true" type="button">All</button>
-          <button class="chip" data-f="paid" aria-pressed="false" type="button">Received</button>
-          <button class="chip" data-f="partial" aria-pressed="false" type="button">Part paid</button>
-        <button class="chip" data-f="pending" aria-pressed="false" type="button">Pending</button>
-          <button class="chip" data-f="new" aria-pressed="false" type="button">New this year</button>
-        </div>
+        <div class="chips" id="c-filters"></div>
         <label class="sortwrap"><span>Sort</span>
           <select id="c-sort" aria-label="Sort contributors">
             <option value="sno:1">Register order</option>
@@ -666,6 +688,7 @@ footer p{margin:0}
           </select></label>
         <button class="btn" id="con-add" type="button">Add a contact</button>
         <button class="btn sec" id="con-import" type="button">Import from the register</button>
+        <button class="btn sec" id="con-phone" type="button">Add from my phone</button>
         <button class="btn sec" id="con-export" type="button">Export Excel</button>
       </div>
       <div class="chips" id="con-chips" style="margin-bottom:12px"></div>
@@ -847,6 +870,8 @@ var CONTACT_CATS = ["Tent & Decoration","Sound & DJ","Priest / Pooja","Idol make
   "Police / Permissions","Committee","Collector","Photo handler","Contributor","Other"];
 var TEAM_CATS = ["Committee","Collector","Photo handler","Contributor"];
 var MODES = ["Cash","UPI","Cash / UPI","UPI / Cash","Bank transfer","In kind"];
+var PAY_MODES = ["Cash","UPI"];
+var DEFAULT_COLLECTORS = ["Anil_SK","Surya_MJV","Sankar_M","Pavan_M"];
 var TAGS = ["Matched","New Contributor","Pending Contact","Matched / Verify","Sponsor"];
 
 /* ---------- tiny helpers ---------- */
@@ -1274,7 +1299,8 @@ function renderLending(){
 }
 function lendFields(l){
   return [
-    {k:"holder",label:"Held by",value:l.holder||"",list:(doc.collectors||[]),
+    {k:"holder",label:"Held by",type:"select",allowBlank:true,
+     options:collectorOptions(l.holder),value:l.holder||"",
      hint:"Who is keeping the money"},
     {k:"phone",label:"Phone",value:l.phone||""},
     {k:"amount",label:"Amount given",type:"number",value:l.amount==null?"":l.amount},
@@ -1289,7 +1315,7 @@ function lendFields(l){
   ];
 }
 function applyLend(l,v){
-  l.holder=v.holder; l.phone=v.phone; l.notes=v.notes;
+  l.holder=fromOption(v.holder); l.phone=v.phone; l.notes=v.notes;
   l.amount=num(v.amount); l.agreed=num(v.agreed); l.returned=num(v.returned);
   l.given=v.given||""; l.dueDate=v.dueDate||""; l.returnedDate=v.returnedDate||"";
   if(l.returned!==null && !l.returnedDate) l.returnedDate=todayISO();
@@ -1406,6 +1432,131 @@ function viewContact(k){
   openView(k.name||"(no name)", (k.sno!=null?"No. "+esc(k.sno):""), rows,
            function(){ editContact(k); });
 }
+/* ---------- pull numbers out of the phone's own contact book ----------
+   Browsers never let a page read the address book. The Contact Picker API
+   opens the phone's own picker and hands back only what the user ticks —
+   and it exists on Chrome for Android only. Everywhere else we say so. */
+function phonePickerAvailable(){
+  return !!(navigator.contacts && navigator.contacts.select && window.ContactsManager);
+}
+function registerPeople(){
+  var out=[], seen={};
+  Object.keys(doc.years||{}).sort().reverse().forEach(function(y){
+    (doc.years[y].contributors||[]).forEach(function(c){
+      var n=String(c.name||"").trim(); if(!n) return;
+      var k=nameKey(n)+"|"+y;
+      if(seen[k]) return; seen[k]=1;
+      out.push({name:n, year:y, sno:c.sno, row:c, phone:c.phone||""});
+    });
+  });
+  return out;
+}
+/* how well a phone-book name lines up with a register name */
+function nameScore(a, b){
+  var A=searchNorm(a).split(" ").filter(Boolean);
+  var B=searchNorm(b).split(" ").filter(Boolean);
+  if(!A.length || !B.length) return 0;
+  if(A.join(" ")===B.join(" ")) return 100;
+  var inB=A.every(function(w){ return B.indexOf(w)>=0; });
+  var inA=B.every(function(w){ return A.indexOf(w)>=0; });
+  /* "Surya" sits wholly inside "Muppasani Surya" — worth asking about */
+  if(inB || inA) return 85;
+  var hits=0;
+  A.forEach(function(w){ if(B.indexOf(w)>=0) hits++; });
+  /* two full names sharing only a first name is not a match:
+     "Ramesh Tent" is not "Gadde Ramesh" */
+  if(hits>=2) return 65;
+  return 20;
+}
+function bestRegisterMatch(name){
+  var best=null, bestScore=0;
+  registerPeople().forEach(function(p){
+    var sc=nameScore(name, p.name);
+    if(sc>bestScore){ bestScore=sc; best=p; }
+  });
+  return bestScore>=60 ? {person:best, score:bestScore} : null;
+}
+function addFromPhone(){
+  if(!phonePickerAvailable()){
+    openSheet("Add from my phone", [], function(){}, null, {saveLabel:"OK",
+      intro:"Reading your phone's contact book needs Chrome on Android — no browser on "+
+        "iPhone or on a computer offers it, and no website can read your contacts without it.\n\n"+
+        "On this device, add numbers with “Add a contact”, or use “Import from the register” "+
+        "to pull in the numbers already recorded against contributors."});
+    return;
+  }
+  navigator.contacts.select(["name","tel"], {multiple:true}).then(function(picked){
+    if(!picked || !picked.length){ toast("Nothing picked."); return; }
+    var queue=[], skipped=0;
+    picked.forEach(function(c){
+      var nm=(c.name&&c.name[0])||"";
+      var tel=(c.tel&&c.tel[0])||"";
+      if(!phoneDigits(tel)){ skipped++; return; }
+      if(contacts().some(function(k){ return sameNumber(k.phone, tel); })){ skipped++; return; }
+      queue.push({name:String(nm).trim(), phone:String(tel).trim()});
+    });
+    if(!queue.length){
+      toast(skipped ? "Those are already saved." : "No usable numbers in what you picked.");
+      return;
+    }
+    walkPhoneQueue(queue, 0, {added:0, linked:0, skipped:skipped});
+  }).catch(function(err){
+    toast("Could not open the contact picker.");
+  });
+}
+function walkPhoneQueue(queue, i, tally){
+  if(i>=queue.length){
+    markDirty(); renderAll();
+    toast("Added "+tally.added+", linked "+tally.linked+
+          (tally.skipped?", skipped "+tally.skipped:"")+".");
+    return;
+  }
+  var item=queue[i];
+  var m=bestRegisterMatch(item.name);
+  function next(){ walkPhoneQueue(queue, i+1, tally); }
+  function saveAs(name, category, role){
+    var arr=contacts();
+    arr.push({id:uid("k"), sno:arr.length+1, name:name, phone:item.phone,
+              category:category||"Other", role:role||"", village:"", notes:""});
+    tally.added++;
+  }
+  if(m){
+    var p=m.person;
+    var exact = nameKey(p.name)===nameKey(item.name);
+    openSheet("Same person?", [], function(){
+      if(!p.row.phone) p.row.phone=item.phone;      /* fill the register row too */
+      saveAs(p.name, "Contributor", "On the "+p.year+" register");
+      tally.linked++;
+      setTimeout(next,0);
+    }, null, {
+      saveLabel:"Yes, same person",
+      intro:"In your phone:   "+item.name+"   "+item.phone+"\n"+
+            "On the register:   "+p.name+"   (No. "+p.sno+", "+p.year+")"+
+            (p.phone? "\n   already has "+p.phone : "")+"\n\n"+
+            (exact ? "The names match exactly."
+                   : "The names are close but not identical. Only say yes if it is the same person.")+
+            "\n\n"+(i+1)+" of "+queue.length,
+      extras:[
+        {label:"No — save under the phone's name", className:"sec", once:true, fn:function(){
+          saveAs(item.name, "Other", "From my phone"); next();
+        }},
+        {label:"Skip this one", className:"sec", once:true,
+         fn:function(){ tally.skipped++; next(); }}
+      ]
+    });
+  } else {
+    openSheet("Not on the register", [], function(){
+      saveAs(item.name, "Other", "From my phone"); setTimeout(next,0);
+    }, null, {
+      saveLabel:"Save anyway",
+      intro:"In your phone:   "+item.name+"   "+item.phone+"\n\n"+
+            "Nobody on the register has a name close to this.\n\n"+(i+1)+" of "+queue.length,
+      extras:[{label:"Skip this one", className:"sec", once:true,
+               fn:function(){ tally.skipped++; next(); }}]
+    });
+  }
+}
+
 function renderContacts(){
   var words=searchWords(ui.conSearch||"");
   var all=contacts();
@@ -1490,12 +1641,21 @@ function renderHeadline(){
   $("rf-coll").textContent=money(coll); $("rf-exp").textContent=money(exp); $("rf-bal").textContent=money(bal);
   $("d-coll").textContent=money(coll);  $("d-exp").textContent=money(exp);
   $("d-bal").textContent=money(cashInHand());
+  var op=opening();
+  $("d-y0").textContent=(ui.year-1);
+  $("d-carry").textContent=money(op);
+  $("d-carry-sub").textContent = op
+    ? "last year's leftover — not counted as chanda"
+    : "nothing carried in · set it on the Balance tab";
+  $("d-carry-tile").classList.toggle("empty-tile", !op);
+  $("rf-carry").textContent=money(op);
+  $("rf-carry-wrap").hidden = !op;
   var handSub=document.querySelector("#panel-dash .tile.hand .d");
-  var out=lentOut(), op=opening();
-  var bits=[];
-  if(op) bits.push(money(op)+" carried in from "+(ui.year-1));
-  if(out) bits.push(money(out)+" out with holders");
-  handSub.textContent = bits.length ? bits.join(" · ") : "Collections minus expenses";
+  var out=lentOut();
+  /* the carried figure has its own tile now, so this line only explains the sum */
+  var base = op ? "Carried in plus collections, minus expenses"
+                : "Collections minus expenses";
+  handSub.textContent = out ? base+" · "+money(out)+" out with holders" : base;
   $("rf-bal").textContent=money(cashInHand());
   var cs=contributors();
   var paid=cs.filter(function(c){var st=paidState(c);return st==="paid"||st==="partial";}).length;
@@ -1629,7 +1789,7 @@ function matchesWords(parts, words){
   return true;
 }
 function contributorHaystack(c){
-  return [c.name, c.prevName, c.notes, c.tag, c.phone, c.collectedBy,
+  return [c.name, c.prevName, c.notes, c.tag, c.phone, c.collectedBy, c.mode,
           c.sno, c.amount, c.prevAmount, c.promised, c.date, fmtDate(c.date)];
 }
 function expenseHaystack(e){
@@ -1664,6 +1824,299 @@ function sortRows(rows,sort){
     return p<q?-dir:p>q?dir:0;
   });
 }
+function collectorList(){
+  var arr=(doc.collectors||[]).map(function(x){ return String(x||"").trim(); }).filter(Boolean);
+  return arr.length ? arr : DEFAULT_COLLECTORS.slice();
+}
+/* a dropdown that can never silently drop a name already on a row */
+function collectorOptions(current){
+  var opts=collectorList().slice();
+  var cur=String(current||"").trim();
+  /* Only the named team can be picked. A name already on this row stays in the
+     list so opening the row never silently rewrites what is recorded — new rows
+     start blank, so a name off the list can never be chosen fresh. */
+  if(cur && opts.indexOf(cur)<0) opts.push(cur);
+  return opts;
+}
+function fromOption(v){ return String(v||""); }
+function offListTotals(){
+  var names={}, rows=0, amount=0;
+  var list=collectorList();
+  function note(v, amt){
+    var n=String(v||"").trim(); if(!n) return;
+    if(list.indexOf(n)>=0) return;
+    names[n]=1; rows++; amount+=amt||0;
+  }
+  Object.keys(doc.years||{}).forEach(function(y){
+    var yr=doc.years[y];
+    (yr.contributors||[]).forEach(function(c){ note(c.collectedBy, num(c.amount)||0); });
+    (yr.expenses||[]).forEach(function(e){ note(e.paidBy, num(e.amount)||0); });
+    (yr.lending||[]).forEach(function(l){ note(l.holder, num(l.amount)||0); });
+  });
+  return {names:Object.keys(names), rows:rows, amount:amount};
+}
+function statusCounts(){
+  var out={all:0,paid:0,partial:0,pending:0,"new":0};
+  contributors().forEach(function(c){ out.all++; out[paidState(c)]++; });
+  return out;
+}
+function renderFilterChips(){
+  var n=statusCounts();
+  var defs=[["all","All",n.all],["paid","Received",n.paid],["partial","Part paid",n.partial],
+            ["pending","Pending",n.pending],["new","New this year",n["new"]]];
+  $("c-filters").innerHTML=defs.map(function(d){
+    return '<button class="chip" data-f="'+d[0]+'" type="button" aria-pressed="'+
+      (ui.cFilter===d[0])+'">'+d[1]+' <b class="cnt">'+d[2]+'</b></button>';
+  }).join("");
+}
+/* ---------- what each collector took in and paid out ---------- */
+function collectorRows(){
+  var map={}, order=[];
+  function slot(name){
+    var k=String(name||"").trim(); if(!k) k="Not recorded";
+    if(!map[k]){ map[k]={name:k, cash:0, upi:0, other:0, collected:0, rows:0,
+                          spent:0, spentRows:0, held:0}; order.push(k); }
+    return map[k];
+  }
+  collectorList().forEach(slot);                       /* always list the named team */
+  contributors().forEach(function(c){
+    var amt=num(c.amount)||0; if(!amt) return;
+    var m=slot(c.collectedBy);
+    m.collected+=amt; m.rows++;
+    var mode=String(c.mode||"").toLowerCase();
+    if(mode==="cash") m.cash+=amt;
+    else if(mode==="upi") m.upi+=amt;
+    else m.other+=amt;
+  });
+  expenses().forEach(function(e){
+    var amt=num(e.amount)||0; if(!amt) return;
+    var m=slot(e.paidBy); m.spent+=amt; m.spentRows++;
+  });
+  lending().forEach(function(l){
+    if(num(l.returned)===null) slot(l.holder).held+=(num(l.amount)||0);
+  });
+  return order.map(function(k){ return map[k]; })
+    .filter(function(m){ return m.collected||m.spent||m.held||collectorList().indexOf(m.name)>=0; });
+}
+function renderCollectors(){
+  var host=$("d-collectors"); if(!host) return;
+  var rows=collectorRows();
+  var live=rows.filter(function(m){ return m.collected||m.spent||m.held; });
+  if(!rows.length){ host.innerHTML='<p class="empty" style="margin:0">No collectors set. Add them in Settings.</p>'; return; }
+  var tc=rows.reduce(function(t,m){ return t+m.collected; },0);
+  var ts=rows.reduce(function(t,m){ return t+m.spent; },0);
+  var off=offListTotals();
+  host.innerHTML=(off.rows
+    ? '<p class="offwarn">'+off.rows+' row'+(off.rows===1?' is':'s are')+' recorded against '+
+      off.names.length+' name'+(off.names.length===1?'':'s')+' not on the collector list ('+
+      esc(off.names.join(", "))+') — '+money(off.amount)+'. Use “Tidy collector names” to move them.</p>'
+    : '')+'<div class="tablewrap plain-wrap"><table class="pub-table collt"><thead><tr>'+
+    '<th class="plain">Collector</th>'+
+    '<th class="plain" style="text-align:right">Collected</th>'+
+    '<th class="plain" style="text-align:right">Cash</th>'+
+    '<th class="plain" style="text-align:right">UPI</th>'+
+    '<th class="plain" style="text-align:right">Spent</th>'+
+    '<th class="plain" style="text-align:right">Net held</th></tr></thead><tbody>'+
+    rows.map(function(m){
+      var net=m.collected-m.spent;
+      return '<tr><td><span class="nm">'+esc(m.name)+'</span>'+
+        (m.rows?'<small>'+m.rows+(m.rows===1?" entry":" entries")+
+          (m.spentRows?" · "+m.spentRows+" expense"+(m.spentRows===1?"":"s"):"")+'</small>':
+          (m.spentRows?'<small>'+m.spentRows+' expense'+(m.spentRows===1?"":"s")+'</small>':''))+'</td>'+
+        '<td class="amt num" data-l="Collected"><strong>'+money(m.collected)+'</strong></td>'+
+        '<td class="amt num" data-l="Cash">'+(m.cash?money(m.cash):'<span class="meta">—</span>')+'</td>'+
+        '<td class="amt num" data-l="UPI">'+(m.upi?money(m.upi):'<span class="meta">—</span>')+'</td>'+
+        '<td class="amt num" data-l="Spent">'+(m.spent?money(m.spent):'<span class="meta">—</span>')+'</td>'+
+        '<td class="amt num" data-l="Net held"><strong>'+money(net)+'</strong>'+
+          (m.held?'<span class="meta">'+money(m.held)+' lent out</span>':'')+
+          (m.other?'<span class="meta">'+money(m.other)+' mode not set</span>':'')+'</td></tr>';
+    }).join("")+
+    '<tr class="totalrow"><td><strong>Total</strong></td>'+
+    '<td class="amt num"><strong>'+money(tc)+'</strong></td><td></td><td></td>'+
+    '<td class="amt num"><strong>'+money(ts)+'</strong></td>'+
+    '<td class="amt num"><strong>'+money(tc-ts)+'</strong></td></tr>'+
+    '</tbody></table></div>';
+}
+
+/* ---------- tidy up names typed loosely before the list existed ----------
+   It proposes, it never decides: every distinct name is listed with how many
+   rows and how much money it accounts for, and you pick the match yourself. */
+function nameKey(v){
+  return String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+function looseMatch(value){
+  var v=nameKey(value); if(!v) return "";
+  var best="", bestScore=0;
+  collectorList().forEach(function(c){
+    var k=nameKey(c);                                   /* anilsk, suryamjv … */
+    var score=0;
+    if(k===v) score=100;
+    else if(k.indexOf(v)===0 || v.indexOf(k)===0) score=80;   /* anil ⊂ anilsk */
+    else if(k.indexOf(v)>=0 || v.indexOf(k)>=0) score=60;
+    if(score>bestScore){ bestScore=score; best=c; }
+  });
+  return bestScore>=60 ? best : "";
+}
+function loosePlaces(){
+  var seen={}, order=[];
+  function note(value, kind, amount){
+    var v=String(value||"").trim(); if(!v) return;
+    if(collectorList().indexOf(v)>=0) return;           /* already exact */
+    if(!seen[v]){ seen[v]={value:v, rows:0, amount:0, kinds:{}}; order.push(v); }
+    seen[v].rows++; seen[v].amount+=(amount||0);
+    seen[v].kinds[kind]=(seen[v].kinds[kind]||0)+1;
+  }
+  Object.keys(doc.years||{}).forEach(function(y){
+    var yr=doc.years[y];
+    (yr.contributors||[]).forEach(function(c){ note(c.collectedBy,"collected",num(c.amount)||0); });
+    (yr.expenses||[]).forEach(function(e){ note(e.paidBy,"spent",num(e.amount)||0); });
+    (yr.lending||[]).forEach(function(l){ note(l.holder,"held",num(l.amount)||0); });
+  });
+  return order.map(function(v){
+    var o=seen[v]; o.suggest=looseMatch(v); return o;
+  }).sort(function(a,b){ return b.amount-a.amount; });
+}
+function applyRename(from, to){
+  var n=0;
+  Object.keys(doc.years||{}).forEach(function(y){
+    var yr=doc.years[y];
+    (yr.contributors||[]).forEach(function(c){ if(c.collectedBy===from){ c.collectedBy=to; n++; } });
+    (yr.expenses||[]).forEach(function(e){ if(e.paidBy===from){ e.paidBy=to; n++; } });
+    (yr.lending||[]).forEach(function(l){ if(l.holder===from){ l.holder=to; n++; } });
+  });
+  return n;
+}
+/* ---------- add, rename and remove collectors ---------- */
+function collectorUsage(name){
+  var rows=0, amount=0;
+  Object.keys(doc.years||{}).forEach(function(y){
+    var yr=doc.years[y];
+    (yr.contributors||[]).forEach(function(c){ if(c.collectedBy===name){ rows++; amount+=num(c.amount)||0; } });
+    (yr.expenses||[]).forEach(function(e){ if(e.paidBy===name){ rows++; amount+=num(e.amount)||0; } });
+    (yr.lending||[]).forEach(function(l){ if(l.holder===name){ rows++; amount+=num(l.amount)||0; } });
+  });
+  return {rows:rows, amount:amount};
+}
+function setCollectors(arr){
+  doc.collectors=arr.map(function(x){ return String(x||"").trim(); }).filter(Boolean)
+    .filter(function(v,i,a){ return a.indexOf(v)===i; });
+  markDirty(); renderAll();
+}
+function manageCollectors(){
+  var sc=document.createElement("div");
+  sc.className="vscrim";
+  function draw(){
+    var list=collectorList();
+    sc.innerHTML='<div class="vcard" role="dialog" aria-modal="true" aria-label="Collectors">'+
+      '<div class="vcard-h"><div><span class="vname">Collectors</span>'+
+        '<span class="vsub">They fill the Collected by, Paid by and Held by dropdowns</span></div>'+
+        '<button class="x" type="button" aria-label="Close">&times;</button></div>'+
+      '<div class="vcard-b">'+
+        (list.length ? list.map(function(nm,i){
+          var u=collectorUsage(nm);
+          return '<div class="collrow" data-i="'+i+'">'+
+            '<div class="cinfo"><span class="n">'+esc(nm)+'</span>'+
+            '<span class="w">'+(u.rows ? u.rows+" row"+(u.rows===1?"":"s")+" · "+money(u.amount)
+                                       : "no entries yet")+'</span></div>'+
+            '<button class="rowbtn" data-ren="'+i+'" type="button">Rename</button>'+
+            '<button class="rowbtn danger-btn" data-del="'+i+'" type="button">Remove</button></div>';
+        }).join("") : '<p class="empty" style="margin:0">No collectors yet.</p>')+
+        '<div class="addrow"><input type="text" id="coll-new" placeholder="New collector name" '+
+          'aria-label="New collector name"><button class="btn" id="coll-add" type="button">Add</button></div>'+
+        '<p class="cap" style="margin-top:10px">Removing a name only takes it out of the dropdowns. '+
+        'Rows already recorded against it keep the name &mdash; use &ldquo;Tidy collector names&rdquo; to move them.</p>'+
+      '</div>'+
+      '<div class="vcard-f"><button class="btn sec" type="button" data-v="close">Done</button></div></div>';
+
+    sc.querySelector(".vcard-h .x").onclick=close;
+    sc.querySelector('[data-v="close"]').onclick=close;
+    sc.querySelector("#coll-add").onclick=function(){
+      var v=String(sc.querySelector("#coll-new").value||"").trim();
+      if(!v){ toast("Type a name first."); return; }
+      var cur=collectorList();
+      if(cur.some(function(x){ return nameKey(x)===nameKey(v); })){
+        toast("That name is already on the list."); return;
+      }
+      setCollectors(cur.concat([v])); toast(v+" added."); draw();
+    };
+    sc.querySelector("#coll-new").addEventListener("keydown",function(e){
+      if(e.key==="Enter"){ e.preventDefault(); sc.querySelector("#coll-add").click(); }
+    });
+    sc.querySelectorAll("[data-ren]").forEach(function(btn){
+      btn.onclick=function(){
+        var i=Number(btn.dataset.ren), cur=collectorList(), old=cur[i];
+        var u=collectorUsage(old);
+        openSheet("Rename "+old,[{k:"nm",label:"New name",value:old}],function(v){
+          var nv=String(v.nm||"").trim();
+          if(!nv){ toast("Enter a name."); return false; }
+          if(nv===old) return;
+          if(cur.some(function(x,j){ return j!==i && nameKey(x)===nameKey(nv); })){
+            toast("That name is already on the list."); return false;
+          }
+          var moved=applyRename(old,nv);
+          var next=cur.slice(); next[i]=nv;
+          setCollectors(next);
+          toast("Renamed"+(moved?" and moved "+moved+" row"+(moved===1?"":"s"):"")+".");
+          draw();
+        },null,{saveLabel:"Rename",
+          intro:u.rows ? "The "+u.rows+" row"+(u.rows===1?"":"s")+" recorded against "+old+
+                         " ("+money(u.amount)+") will move to the new name too."
+                       : "Nothing is recorded against this name yet."});
+      };
+    });
+    sc.querySelectorAll("[data-del]").forEach(function(btn){
+      btn.onclick=function(){
+        var i=Number(btn.dataset.del), cur=collectorList(), nm=cur[i];
+        var u=collectorUsage(nm);
+        if(btn.dataset.armed){
+          setCollectors(cur.filter(function(x,j){ return j!==i; }));
+          toast(nm+" removed from the list."); draw(); return;
+        }
+        btn.dataset.armed="1";
+        btn.textContent = u.rows ? "Tap again — "+u.rows+" row"+(u.rows===1?"":"s")+" keep this name"
+                                 : "Tap again to remove";
+      };
+    });
+  }
+  function close(){ document.removeEventListener("keydown",key); sc.remove(); }
+  function key(e){ if(e.key==="Escape" && $("scrim").hidden) close(); }
+  sc.addEventListener("click",function(e){ if(e.target===sc) close(); });
+  document.addEventListener("keydown",key);
+  draw(); document.body.appendChild(sc);
+}
+
+function tidyCollectors(){
+  var list=loosePlaces();
+  if(!list.length){
+    toast("Every name already matches the collector list.");
+    return;
+  }
+  var fields=list.map(function(o,i){
+    var kinds=Object.keys(o.kinds).map(function(k){ return o.kinds[k]+" "+k; }).join(", ");
+    return {k:"m"+i, label:'“'+o.value+'”  —  '+o.rows+" row"+(o.rows===1?"":"s")+
+              (o.amount?", "+money(o.amount):""),
+            type:"select", allowBlank:true,
+            options:collectorList(),
+            value:"",                                  /* nothing pre-selected on purpose */
+            hint:(o.suggest ? "Looks like "+o.suggest+". Leave blank to keep “"+o.value+"” as it is."
+                            : "No close match. Leave blank to keep it as it is.")};
+  });
+  openSheet("Tidy collector names", fields, function(v){
+    var changed=0, people=0;
+    list.forEach(function(o,i){
+      var to=v["m"+i];
+      if(to && to!==o.value){ changed+=applyRename(o.value,to); people++; }
+    });
+    if(!changed){ toast("Nothing changed."); return; }
+    markDirty(); renderAll();
+    toast("Renamed "+people+" name"+(people===1?"":"s")+" across "+changed+" row"+(changed===1?"":"s")+".");
+  }, null, {saveLabel:"Apply",
+    intro:"These names appear on rows but are not on your collector list. "+
+      "Pick who each one is, or leave it blank to keep it unchanged. "+
+      "Nothing is renamed until you tap Apply.\n\n"+
+      "Check the two Anils carefully if you have two different people."});
+}
+
 function renderContributors(){
   var words=searchWords(ui.cSearch);
   var rows=contributors().filter(function(c){
@@ -1671,6 +2124,7 @@ function renderContributors(){
     return matchesWords(contributorHaystack(c), words);
   });
   rows=sortRows(rows,ui.cSort);
+  renderFilterChips();
   $("c-empty").hidden = rows.length>0;
   $("c-body").innerHTML = rows.map(function(c){
     var st=paidState(c);
@@ -1686,10 +2140,11 @@ function renderContributors(){
       var diff=cur-prev;
       extra+='<span class="delta '+(diff>0?"up":diff<0?"down":"")+'">'+(diff>0?"+":"")+money(diff)+' vs last year</span>';
     }
-    if(c.collectedBy || c.date){
+    if(c.collectedBy || c.date || c.mode){
       var who = c.collectedBy ? "Collected by "+esc(c.collectedBy) : "Received";
       var when = fmtDate(c.date);
-      extra+='<span class="meta">'+who+(when? " &middot; "+when : "")+'</span>';
+      extra+='<span class="meta">'+who+(when? " &middot; "+when : "")+
+        (c.mode? " &middot; "+esc(c.mode) : "")+'</span>';
     }
     return '<tr data-id="'+esc(c.id)+'">'+
       '<td class="stripe" style="background:'+stripe+'"></td>'+
@@ -1738,7 +2193,8 @@ function renderAll(){
   $("lg-cur").textContent=y; $("lg-prev").textContent=py+" benchmark";
   $("chart1-cap").textContent="This year against the "+py+" ledger, top 12 by amount";
   $("foot").textContent = contributors().length+" contributors · "+expenses().length+" expense heads · "+y+" register";
-  renderLending(); renderSponsors(); renderContacts();
+  renderLending(); renderSponsors(); renderContacts(); renderCollectors();
+  $("d-y3").textContent=ui.year;
   if(!$("panel-media").hidden) renderMedia();
 }
 
@@ -1776,7 +2232,15 @@ function openSheet(title,fields,onSave,onDelete,opts){
     });
     b.appendChild(d);
   }
-  (opts.extras||[]).forEach(function(x){ twoTap(x.label,x.armedLabel,x.className||"sec",x.fn); });
+  (opts.extras||[]).forEach(function(x){
+    if(x.once){
+      var d=document.createElement("button");
+      d.className="btn "+(x.className||"sec"); d.type="button";
+      d.textContent=x.label; d.style.marginTop="4px";
+      d.addEventListener("click",function(){ closeSheet(); x.fn(); });
+      b.appendChild(d);
+    } else twoTap(x.label,x.armedLabel,x.className||"sec",x.fn);
+  });
   if(onDelete){
     twoTap(opts.deleteLabel||"Delete this entry", opts.deleteArmedLabel||"Tap again to confirm",
            "danger", onDelete);
@@ -1808,8 +2272,10 @@ function editContributor(c){
     {k:"name",label:"Contributor name",value:c.name||"",hint:"Telugu script is fine"},
     {k:"promised",label:"Promised (₹)",type:"number",value:c.promised==null?"":c.promised,hint:"What they committed to give. Leave blank if they paid in full straight away."},
     {k:"amount",label:"Received so far (₹)",type:"number",value:c.amount==null?"":c.amount,hint:"Leave blank until the chanda comes in"},
-    {k:"collectedBy",label:"Collected by",value:c.collectedBy||"",list:doc.collectors||[],
+    {k:"collectedBy",label:"Collected by",type:"select",allowBlank:true,
+     options:collectorOptions(c.collectedBy),value:c.collectedBy||"",
      hint:"Which team member received the money"},
+    {k:"mode",label:"Cash or UPI",type:"select",allowBlank:true,options:PAY_MODES,value:c.mode||""},
     {k:"date",label:"Date received",type:"date",value:c.date||""},
     {k:"phone",label:"Phone",value:c.phone||"",hint:"10 digits, or with country code"},
     {k:"prevAmount",label:"Last year's amount (₹)",type:"number",value:c.prevAmount==null?"":c.prevAmount},
@@ -1820,12 +2286,12 @@ function editContributor(c){
     if(!v.name){ toast("A name is required."); return false; }
     if(isNew){
       contributors().push({id:uid(),sno:nextSno(contributors()),name:v.name,amount:v.amount,
-        promised:v.promised,collectedBy:v.collectedBy,date:v.date,
+        promised:v.promised,collectedBy:fromOption(v.collectedBy),mode:v.mode,date:v.date,
         prevAmount:v.prevAmount,prevName:v.prevName,phone:v.phone,tag:v.tag,notes:v.notes});
       toast("Contributor added.");
     } else {
       c.name=v.name; c.amount=v.amount; c.promised=v.promised;
-      c.collectedBy=v.collectedBy; c.date=v.date;
+      c.collectedBy=fromOption(v.collectedBy); c.mode=v.mode; c.date=v.date;
       c.prevAmount=v.prevAmount; c.prevName=v.prevName;
       c.phone=v.phone; c.tag=v.tag; c.notes=v.notes;
       toast("Saved.");
@@ -1844,17 +2310,18 @@ function editExpense(e){
     {k:"category",label:"Head",type:"select",options:opts,value:e.category||EXPENSE_HEADS[0]},
     {k:"item",label:"Item / description",value:e.item||""},
     {k:"amount",label:"Amount (₹)",type:"number",value:e.amount==null?"":e.amount},
-    {k:"paidBy",label:"Paid by / in charge",value:e.paidBy||""},
+    {k:"paidBy",label:"Paid by / in charge",type:"select",allowBlank:true,
+     options:collectorOptions(e.paidBy),value:e.paidBy||""},
     {k:"mode",label:"Payment mode",type:"select",allowBlank:true,options:MODES,value:e.mode||""},
     {k:"date",label:"Date",type:"date",value:e.date||""},
     {k:"notes",label:"Receipt / notes",type:"textarea",value:e.notes||""}
   ],function(v){
     if(isNew){
       expenses().push({id:uid(),sno:nextSno(expenses()),category:v.category,item:v.item,amount:v.amount,
-        paidBy:v.paidBy,mode:v.mode,date:v.date,notes:v.notes});
+        paidBy:fromOption(v.paidBy),mode:v.mode,date:v.date,notes:v.notes});
       toast("Expense added.");
     } else {
-      e.category=v.category; e.item=v.item; e.amount=v.amount; e.paidBy=v.paidBy;
+      e.category=v.category; e.item=v.item; e.amount=v.amount; e.paidBy=fromOption(v.paidBy);
       e.mode=v.mode; e.date=v.date; e.notes=v.notes;
       toast("Saved.");
     }
@@ -2608,6 +3075,7 @@ function viewContributor(c){
     (due!==null?["Promised", money(due)+(outstanding(c)?'<span class="sub">'+money(outstanding(c))+' still due</span>':'')]:null),
     (prev!==null?["Last year", money(c.prevAmount)]:null),
     (c.collectedBy?["Collected by", esc(c.collectedBy)]:null),
+    (c.mode?["Cash or UPI", esc(c.mode)]:null),
     (c.date?["Date", esc(fmtDate(c.date))]:null),
     (c.phone?["Phone", '<div class="vphones">'+phoneLinks(c.phone)+'</div>']:null),
     (c.notes?["Notes", esc(c.notes)]:null)
@@ -3193,7 +3661,7 @@ function openSettings(){
     {k:"device",label:"This phone belongs to",value:cfg.device||"",
      hint:"Your name. The organiser sees it when you send entries."},
     {k:"collectors",label:"Collectors",value:(doc.collectors||[]).join(", "),
-     hint:"Comma separated. These appear as suggestions in the \u201cCollected by\u201d box."},
+     hint:"Comma separated. These fill the \u201cCollected by\u201d, \u201cPaid by\u201d and \u201cHeld by\u201d dropdowns, and each one gets a line in the By collector table."},
     {k:"media1",label:"Photo handler 1",value:(doc.mediaTeam||[])[0]||"",
      hint:"Whoever looks after photos and videos. They sign in with the public code plus their own GitHub token \u2014 they never see the register."},
     {k:"media2",label:"Photo handler 2",value:(doc.mediaTeam||[])[1]||""},
@@ -3359,7 +3827,6 @@ $("e-search").addEventListener("input",function(){ ui.eSearch=this.value; render
 $("c-filters").addEventListener("click",function(e){
   var b=e.target.closest(".chip"); if(!b) return;
   ui.cFilter=b.dataset.f;
-  Array.prototype.forEach.call(this.querySelectorAll(".chip"),function(c){ c.setAttribute("aria-pressed",c===b?"true":"false"); });
   renderContributors();
 });
 $("c-add").addEventListener("click",function(){ editContributor(null); });
@@ -3391,8 +3858,11 @@ tapRouter("con-body",
   function(id){ return contacts().filter(function(r){return r.id===id;})[0]; },
   viewContact, editContact);
 $("tab-con").addEventListener("click",function(){ tabTo("con"); renderContacts(); });
+$("d-tidy").addEventListener("click",tidyCollectors);
+$("d-editcoll").addEventListener("click",manageCollectors);
 $("con-add").addEventListener("click",addContact);
 $("con-import").addEventListener("click",importNumbers);
+$("con-phone").addEventListener("click",addFromPhone);
 $("con-export").addEventListener("click",exportContacts);
 $("con-search").addEventListener("input",function(){ ui.conSearch=this.value; renderContacts(); });
 $("con-sort").addEventListener("change",function(){
