@@ -1412,9 +1412,8 @@ function renderLending(){
 }
 function lendFields(l){
   return [
-    {k:"holder",label:"Held by",type:"select",allowBlank:true,
-     options:collectorOptions(l.holder),value:l.holder||"",
-     hint:"Who is keeping the money"},
+    {k:"holder",label:"Held by",value:l.holder||"",list:collectorList(),
+     hint:"Anyone can hold the money — type any name, or pick a team member from the list"},
     {k:"phone",label:"Phone",value:l.phone||""},
     {k:"amount",label:"Amount given",type:"number",value:l.amount==null?"":l.amount},
     {k:"given",label:"Date given",type:"date",value:l.given||""},
@@ -1727,7 +1726,7 @@ var TB_SETS = {
       returnedDate:"", notes:""}; },
     cols:[
       {k:"sno",    t:"No.",    type:"int", w:60},
-      {k:"holder", t:"Held by",type:"coll"},
+      {k:"holder", t:"Held by",type:"name"},
       {k:"phone",  t:"Phone",  type:"text"},
       {k:"amount", t:"Given",  type:"number"},
       {k:"given",  t:"Date given", type:"date"},
@@ -1832,6 +1831,15 @@ function wireTable(){
       el.innerHTML='<option value=""></option>'+opts.map(function(o){
         return '<option value="'+esc(o)+'"'+(String(cur||"")===o?" selected":"")+'>'+esc(o)+'</option>';
       }).join("");
+    } else if(col.type==="name"){
+      /* any name is allowed here, with the team offered as suggestions */
+      el=document.createElement("input");
+      el.type="text"; el.value = cur==null?"":String(cur);
+      el.setAttribute("list","gridnames");
+      var dl=document.getElementById("gridnames");
+      if(!dl){ dl=document.createElement("datalist"); dl.id="gridnames"; document.body.appendChild(dl); }
+      dl.innerHTML=collectorList().map(function(o){
+        return '<option value="'+esc(o)+'"></option>'; }).join("");
     } else {
       el=document.createElement("input");
       el.type = col.type==="date" ? "date" : (col.type==="number"||col.type==="int") ? "number" : "text";
@@ -2271,7 +2279,8 @@ function offListTotals(){
     var yr=doc.years[y];
     (yr.contributors||[]).forEach(function(c){ note(c.collectedBy, num(c.amount)||0); });
     (yr.expenses||[]).forEach(function(e){ note(e.paidBy, num(e.amount)||0); });
-    (yr.lending||[]).forEach(function(l){ note(l.holder, num(l.amount)||0); });
+    /* money can legitimately be held by someone outside the team, so a holder
+       who is not a collector is not a mistake — it is not counted here */
   });
   return {names:Object.keys(names), rows:rows, amount:amount};
 }
@@ -2408,7 +2417,7 @@ function loosePlaces(){
     var yr=doc.years[y];
     (yr.contributors||[]).forEach(function(c){ note(c.collectedBy,"collected",num(c.amount)||0); });
     (yr.expenses||[]).forEach(function(e){ note(e.paidBy,"spent",num(e.amount)||0); });
-    (yr.lending||[]).forEach(function(l){ note(l.holder,"held",num(l.amount)||0); });
+
   });
   return order.map(function(v){
     var o=seen[v]; o.suggest=looseMatch(v); return o;
