@@ -313,6 +313,10 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .zhint{opacity:.5;font-size:12px}
 .taphint{margin:9px 2px 0;font-size:12.5px;color:var(--muted)}
 .chip .cnt{font-weight:600;opacity:.75;margin-left:2px}
+.reeltap{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:9px;border:0;cursor:pointer;color:#f0e6d2;font-size:12.5px;
+  background:linear-gradient(180deg,rgba(18,13,8,.55),rgba(18,13,8,.82))}
+.reeltap span{letter-spacing:.02em}
 .offwarn{margin:0 0 12px;padding:9px 12px;border-radius:9px;font-size:13px;line-height:1.5;
   background:var(--accent-soft,rgba(210,164,60,.14));border:1px solid var(--line-strong);color:var(--ink-2)}
 .collrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -2865,14 +2869,27 @@ function renderReels(y){
     el.className="reel";
     if(item.type==="clip" && item.file){
       var solo = vids.length<=slots;   // nothing to rotate to, so just loop in place
-      el.innerHTML='<video src="'+esc(item.file)+'" muted playsinline autoplay preload="metadata"'+
+      var mb = (num(item.size)||0)/1048576;
+      var heavy = mb > 6;              // don't spend someone's mobile data uninvited
+      el.innerHTML='<video src="'+esc(item.file)+'" muted playsinline '+
+        (heavy ? 'preload="none"' : 'autoplay preload="metadata"')+
         (solo?' loop':'')+'></video>'+
         (item.caption?'<div class="rlabel">'+esc(item.caption)+'</div>':'')+
+        (heavy?'<button class="reeltap" type="button">'+
+          '<svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true">'+
+          '<circle cx="17" cy="17" r="16" fill="none" stroke="#f0e6d2" stroke-width="1.5"/>'+
+          '<path d="M13.5 10.5 L24 17 L13.5 23.5 Z" fill="#f0e6d2"/></svg>'+
+          '<span>Tap to play &middot; '+mb.toFixed(0)+' MB</span></button>':'')+
         controlsHtml();
       var v=el.querySelector("video");
       if(!solo) v.addEventListener("ended",function(){ advance(slot); });
-      wireControls(el, {kind:"clip", video:v, muted:true, playing:true});
-      v.play().catch(function(){});
+      wireControls(el, {kind:"clip", video:v, muted:true, playing:!heavy});
+      if(heavy){
+        var tap=el.querySelector(".reeltap");
+        tap.addEventListener("click",function(){
+          tap.remove(); v.preload="auto"; v.play().catch(function(){});
+        });
+      } else v.play().catch(function(){});
       return;
     }
     var id=ytId(item.url);
@@ -3337,7 +3354,8 @@ function addClip(file){
     return;
   }
   var ext=/\.webm$/i.test(file.name)?"webm":"mp4";
-  note.textContent="Uploading clip ("+(file.size/1048576).toFixed(1)+" MB)…";
+  note.textContent="Uploading clip ("+(file.size/1048576).toFixed(1)+" MB)…"+
+    (file.size>6*1048576 ? " Anything over 6 MB will not autoplay on the public page — visitors tap to watch, so it does not eat their data." : "");
   blobToB64(file).then(function(b64){
     var id=uid("m"), path="media/"+ui.year+"/"+id+"."+ext;
     return fetch(ghUrl(path),{method:"PUT",headers:ghHeaders(),body:JSON.stringify({
