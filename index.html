@@ -243,6 +243,17 @@ tbody td small,.sub2{display:block;font-weight:400;color:var(--muted);font-size:
 .reel{position:relative;border-radius:12px;overflow:hidden;background:#0f1218;border:1px solid var(--line);
   aspect-ratio:9/16;transition:opacity .26s ease}
 .reel.fading{opacity:0}
+.reelnav{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:9px}
+.rnav{width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink-2);font-size:17px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.rnav:hover{background:var(--surface-2)}
+.rdots{display:flex;align-items:center;gap:7px}
+.rdot{width:8px;height:8px;padding:0;border-radius:50%;border:0;cursor:pointer;
+  background:var(--line-strong);transition:background .2s ease,transform .2s ease}
+.rdot.on{background:var(--gold);transform:scale(1.35)}
+.reelswipe{margin:6px 0 0;font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
+@media (hover:hover){ .reelswipe{display:none} }
 @media (prefers-reduced-motion:reduce){ .reel{transition:none} }
 @media (max-width:860px){ .reel{max-width:260px;margin:0 auto} }
 .reel iframe,.reel video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;display:block}
@@ -3524,8 +3535,9 @@ function wireControls(el, st){
     });
   }
 }
+function clearReelTimers(){ REEL_TIMERS.forEach(clearTimeout); REEL_TIMERS=[]; }
 function stopReels(){
-  REEL_TIMERS.forEach(clearTimeout); REEL_TIMERS=[];
+  clearReelTimers();
   if(REEL_WATCH){ REEL_WATCH.disconnect(); REEL_WATCH=null; }
 }
 /* A clip scrolled off the screen is still decoding — it costs battery and,
@@ -3909,8 +3921,17 @@ function renderReels(y){
   REEL_YEAR=y; REEL_WIDE=reelWide();
   var slots=1;
   var next=slots % vids.length;
+  var cur=[0];                       /* which clip each frame is showing */
+  var many=vids.length>slots;
   rail.innerHTML='<p class="railhead">From '+y+'</p>'+
-    Array.apply(null,{length:slots}).map(function(_,i){ return '<div class="reel" id="reel-'+i+'"></div>'; }).join("");
+    Array.apply(null,{length:slots}).map(function(_,i){ return '<div class="reel" id="reel-'+i+'"></div>'; }).join("")+
+    (many ? '<div class="reelnav"><button class="rnav" data-go="-1" type="button" '+
+              'aria-label="Previous clip">&#8249;</button>'+
+              '<div class="rdots" id="rdots">'+vids.map(function(_,i){
+                return '<button class="rdot" data-i="'+i+'" type="button" '+
+                  'aria-label="Clip '+(i+1)+' of '+vids.length+'"></button>'; }).join("")+'</div>'+
+              '<button class="rnav" data-go="1" type="button" aria-label="Next clip">&#8250;</button>'+
+            '</div><p class="reelswipe">Swipe, or use the arrows, to change clip</p>' : '');
 
   function mount(slot, item){
     var el=$("reel-"+slot); if(!el) return;
@@ -3935,7 +3956,16 @@ function renderReels(y){
       wireControls(el, {kind:"clip", video:v, muted:true, playing:!heavy});
       if(heavy){
         var tap=el.querySelector(".reeltap");
+        /* A heavy clip never plays on its own, so it never "ends" — without a
+           clock the carousel would stop dead on it and later clips would never
+           get a turn. Move on unless somebody actually taps play. */
+        var skip=null;
+        if(vids.length>slots){
+          skip=setTimeout(function(){ advance(slot); }, 15000);
+          REEL_TIMERS.push(skip);
+        }
         tap.addEventListener("click",function(){
+          if(skip) clearTimeout(skip);        /* they want to watch it — stop the clock */
           tap.remove(); v.preload="auto"; v.play().catch(function(){});
         });
       } else v.play().catch(function(){});
@@ -3973,15 +4003,68 @@ function renderReels(y){
       requestAnimationFrame(function(){ el.classList.remove("fading"); });
     });
   }
-  function advance(slot){
-    if(vids.length<=slots){ mount(slot, vids[slot]); return; }
-    var item=vids[next % vids.length]; next=(next+1)%vids.length;
-    var el=$("reel-"+slot);
-    if(!el){ swapIn(slot, item); return; }
-    el.classList.add("fading");                     /* fade out, then swap */
-    REEL_TIMERS.push(setTimeout(function(){ swapIn(slot, item); }, 260));
+  function paintDots(){
+    var host=$("rdots"); if(!host) return;
+    host.querySelectorAll(".rdot").forEach(function(b,i){
+      var on=i===cur[0];
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-current", on?"true":"false");
+    });
   }
-  for(var i=0;i<slots;i++) mount(i, vids[i]);
+  /* goTo drives everything: the clip ending, a swipe, an arrow, a dot. */
+  function goTo(slot, idx, manual){
+    if(!many){ mount(slot, vids[slot]); return; }
+    idx=((idx % vids.length)+vids.length)%vids.length;
+    if(manual) clearReelTimers();      /* a queued auto-advance would yank it back;
+                                          the off-screen watcher stays put */
+    cur[slot]=idx; next=(idx+1)%vids.length;
+    var item=vids[idx], el=$("reel-"+slot);
+    if(!el){ swapIn(slot, item); paintDots(); return; }
+    el.classList.add("fading");                     /* fade out, then swap */
+    REEL_TIMERS.push(setTimeout(function(){ swapIn(slot, item); paintDots(); }, 260));
+  }
+  function advance(slot){ goTo(slot, cur[slot]+1, false); }
+  function step(slot, delta){ goTo(slot, cur[slot]+delta, true); }
+
+  if(many){
+    rail.querySelectorAll(".rnav").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.preventDefault(); e.stopPropagation();
+        step(0, Number(b.dataset.go)||1);
+      });
+    });
+    rail.querySelectorAll(".rdot").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.preventDefault(); e.stopPropagation();
+        goTo(0, Number(b.dataset.i)||0, true);
+      });
+    });
+    var reel0=$("reel-0");
+    if(reel0){
+      /* a swipe in either direction — sideways like a gallery, or up and down
+         like a reel — moves to the next clip */
+      var sx=0, sy=0, moved=false;
+      reel0.addEventListener("touchstart",function(e){
+        var t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; moved=false;
+      },{passive:true});
+      reel0.addEventListener("touchmove",function(){ moved=true; },{passive:true});
+      reel0.addEventListener("touchend",function(e){
+        if(!moved) return;
+        var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+        var ax=Math.abs(dx), ay=Math.abs(dy);
+        if(Math.max(ax,ay)<45) return;              /* a tap, not a swipe */
+        if(ax>=ay) step(0, dx<0 ? 1 : -1);          /* left = next */
+        else step(0, dy<0 ? 1 : -1);                /* up   = next */
+      },{passive:true});
+      reel0.setAttribute("tabindex","0");
+      reel0.addEventListener("keydown",function(e){
+        if(e.key==="ArrowRight"||e.key==="ArrowDown"){ e.preventDefault(); step(0,1); }
+        else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){ e.preventDefault(); step(0,-1); }
+      });
+    }
+  }
+  for(var i=0;i<slots;i++){ cur[i]=i; mount(i, vids[i]); }
+  paintDots();
   return vids.length;
 }
 
